@@ -97,3 +97,114 @@ class CustomBallInCup(ball_in_cup.BallInCup):
                                    sigmoid='linear')
     spin_reward = not_in_target * (dist_reward + 2*vel_reward) / 3
     return spin_reward
+
+
+class CatchRandomized(ball_in_cup.BallInCup):
+  """Domain Randomization版Ball-in-Cup Catch Task
+  
+  エピソードごとにボール質量をランダム化:
+  - ball_mass: uniform(0.003, 0.015) (デフォルト~0.006の0.5×～2.5×)
+  """
+  
+  def __init__(self, random=None):
+    super().__init__(random=random)
+    # デフォルト質量 ~0.006 の 0.5× ~ 2.5×
+    self._ball_mass_range = (0.003, 0.015)
+  
+  def initialize_episode(self, physics):
+    """エピソードごとにボール質量をランダム化"""
+    # 新しいボール質量をサンプリング
+    ball_mass = self.random.uniform(*self._ball_mass_range)
+    
+    # Physics内部のモデルを直接変更
+    # ball_in_cupの場合、body index 2がball
+    physics.model.body_mass[2] = ball_mass
+    
+    # 親クラスの初期化を呼ぶ
+    super().initialize_episode(physics)
+
+
+@ball_in_cup.SUITE.add('custom')
+def catch_randomized(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Domain Randomization版Ball-in-Cup Catch
+  
+  エピソードごとにボール質量をランダム化:
+  - ball_mass: uniform(0.003, 0.015)
+  
+  Transformerが In-Context Learning によりボール質量を学習するための環境。
+  """
+  physics = ball_in_cup.Physics.from_xml_string(*get_model_and_assets())
+  task = CatchRandomized(random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(
+      physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP,
+      **environment_kwargs)
+
+
+class CatchFixedMass(ball_in_cup.BallInCup):
+  """固定ボール質量版Ball-in-Cup Catch Task"""
+  
+  def __init__(self, ball_mass, random=None):
+    super().__init__(random=random)
+    self._ball_mass = ball_mass
+  
+  def initialize_episode(self, physics):
+    """固定ボール質量を設定"""
+    physics.model.body_mass[2] = self._ball_mass
+    super().initialize_episode(physics)
+
+
+# Zero-shot評価用の固定質量版タスク (デフォルト ~0.006)
+@ball_in_cup.SUITE.add('custom')
+def catch_ball_mass_05x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Ball-in-Cup Catch with ball_mass=0.003 (0.5x)"""
+  physics = ball_in_cup.Physics.from_xml_string(*get_model_and_assets())
+  task = CatchFixedMass(ball_mass=0.003, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(
+      physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP,
+      **environment_kwargs)
+
+
+@ball_in_cup.SUITE.add('custom')
+def catch_ball_mass_10x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Ball-in-Cup Catch with ball_mass=0.006 (1.0x, baseline)"""
+  physics = ball_in_cup.Physics.from_xml_string(*get_model_and_assets())
+  task = CatchFixedMass(ball_mass=0.006, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(
+      physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP,
+      **environment_kwargs)
+
+
+@ball_in_cup.SUITE.add('custom')
+def catch_ball_mass_15x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Ball-in-Cup Catch with ball_mass=0.009 (1.5x)"""
+  physics = ball_in_cup.Physics.from_xml_string(*get_model_and_assets())
+  task = CatchFixedMass(ball_mass=0.009, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(
+      physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP,
+      **environment_kwargs)
+
+
+@ball_in_cup.SUITE.add('custom')
+def catch_ball_mass_20x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Ball-in-Cup Catch with ball_mass=0.012 (2.0x)"""
+  physics = ball_in_cup.Physics.from_xml_string(*get_model_and_assets())
+  task = CatchFixedMass(ball_mass=0.012, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(
+      physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP,
+      **environment_kwargs)
+
+
+@ball_in_cup.SUITE.add('custom')
+def catch_ball_mass_25x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Ball-in-Cup Catch with ball_mass=0.015 (2.5x)"""
+  physics = ball_in_cup.Physics.from_xml_string(*get_model_and_assets())
+  task = CatchFixedMass(ball_mass=0.015, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(
+      physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP,
+      **environment_kwargs)

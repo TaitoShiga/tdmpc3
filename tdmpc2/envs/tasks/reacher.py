@@ -87,3 +87,108 @@ class CustomThreeLinkReacher(reacher.Reacher):
     obs['to_target'] = physics.finger_to_target()
     obs['velocity'] = physics.velocity()
     return obs
+
+
+class ThreeEasyRandomized(reacher.Reacher):
+  """Domain Randomization版3-Link Reacher Easy Task
+  
+  エピソードごとにリンク質量をランダム化:
+  - link_mass: uniform(0.01, 0.05) for each link (デフォルト~0.02の0.5×～2.5×)
+  """
+  
+  def __init__(self, target_size, random=None):
+    super().__init__(target_size, random)
+    # デフォルト質量 ~0.02 の 0.5× ~ 2.5×
+    self._link_mass_range = (0.01, 0.05)
+  
+  def initialize_episode(self, physics):
+    """エピソードごとにリンク質量をランダム化"""
+    # 各リンクの質量をサンプリング
+    # 3-link reacherの場合、body 1,2,3がarm0, arm1, hand
+    for i in range(1, 4):
+      link_mass = self.random.uniform(*self._link_mass_range)
+      physics.model.body_mass[i] = link_mass
+    
+    # 親クラスの初期化を呼ぶ
+    super().initialize_episode(physics)
+
+
+@reacher.SUITE.add('custom')
+def three_easy_randomized(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Domain Randomization版3-Link Reacher Easy
+  
+  エピソードごとにリンク質量をランダム化:
+  - link_mass: uniform(0.01, 0.05) for each link
+  
+  Transformerが In-Context Learning によりリンク質量を学習するための環境。
+  """
+  physics = Physics.from_xml_string(*get_model_and_assets(links=3))
+  task = ThreeEasyRandomized(target_size=_BIG_TARGET, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(
+      physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+class ThreeEasyFixedMass(reacher.Reacher):
+  """固定リンク質量版3-Link Reacher Easy Task"""
+  
+  def __init__(self, link_mass, target_size, random=None):
+    super().__init__(target_size, random)
+    self._link_mass = link_mass
+  
+  def initialize_episode(self, physics):
+    """固定リンク質量を設定"""
+    for i in range(1, 4):  # body 1,2,3がarm0, arm1, hand
+      physics.model.body_mass[i] = self._link_mass
+    super().initialize_episode(physics)
+
+
+# Zero-shot評価用の固定質量版タスク (デフォルト ~0.02)
+@reacher.SUITE.add('custom')
+def three_easy_link_mass_05x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """3-Link Reacher Easy with link_mass=0.01 (0.5x)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=3))
+  task = ThreeEasyFixedMass(link_mass=0.01, target_size=_BIG_TARGET, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(
+      physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def three_easy_link_mass_10x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """3-Link Reacher Easy with link_mass=0.02 (1.0x, baseline)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=3))
+  task = ThreeEasyFixedMass(link_mass=0.02, target_size=_BIG_TARGET, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(
+      physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def three_easy_link_mass_15x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """3-Link Reacher Easy with link_mass=0.03 (1.5x)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=3))
+  task = ThreeEasyFixedMass(link_mass=0.03, target_size=_BIG_TARGET, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(
+      physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def three_easy_link_mass_20x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """3-Link Reacher Easy with link_mass=0.04 (2.0x)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=3))
+  task = ThreeEasyFixedMass(link_mass=0.04, target_size=_BIG_TARGET, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(
+      physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def three_easy_link_mass_25x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """3-Link Reacher Easy with link_mass=0.05 (2.5x)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=3))
+  task = ThreeEasyFixedMass(link_mass=0.05, target_size=_BIG_TARGET, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(
+      physics, task, time_limit=time_limit, **environment_kwargs)

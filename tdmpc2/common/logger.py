@@ -88,19 +88,37 @@ class VideoRecorder:
 
 	def init(self, env, enabled=True):
 		self.frames = []
-		self.enabled = self._save_dir and self._wandb and enabled
-		self.record(env)
+		self.enabled = bool(enabled)
+		if self.enabled:
+			if self._save_dir:
+				make_dir(self._save_dir)
+			self.record(env)
 
 	def record(self, env):
 		if self.enabled:
 			self.frames.append(env.render())
 
 	def save(self, step, key='videos/eval_video'):
-		if self.enabled and len(self.frames) > 0:
-			frames = np.stack(self.frames)
-			return self._wandb.log(
-				{key: self._wandb.Video(frames.transpose(0, 3, 1, 2), fps=self.fps, format='mp4')}, step=step
+		if not self.enabled or len(self.frames) == 0:
+			return
+		frames = np.stack(self.frames)
+		if frames.dtype != np.uint8:
+			frames = frames.astype(np.uint8)
+		if self._wandb:
+			self._wandb.log(
+				{key: self._wandb.Video(frames.transpose(0, 3, 1, 2), fps=self.fps, format='mp4')},
+				step=step
 			)
+		if self._save_dir:
+			try:
+				import imageio
+			except ImportError:
+				print(colored("Install imageio to enable video export.", "red"))
+			else:
+				fp = self._save_dir / f'step_{int(step):06d}.mp4'
+				imageio.mimsave(fp, frames, fps=self.fps)
+				print(colored(f"Saved evaluation video to {fp}", "blue"))
+		self.frames = []
 
 
 class Logger:
@@ -119,10 +137,8 @@ class Logger:
 		self.entity = cfg.get("wandb_entity", "none")
 		if not cfg.enable_wandb or self.project == "none" or self.entity == "none":
 			print(colored("Wandb disabled.", "blue", attrs=["bold"]))
-			cfg.save_agent = False
-			cfg.save_video = False
 			self._wandb = None
-			self._video = None
+			self._video = VideoRecorder(cfg, self._wandb) if cfg.save_video else None
 			return
 		os.environ["WANDB_SILENT"] = "true" if cfg.wandb_silent else "false"
 		import wandb

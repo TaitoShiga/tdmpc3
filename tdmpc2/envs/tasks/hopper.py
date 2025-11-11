@@ -106,6 +106,117 @@ class CustomHopper(hopper.Hopper):
 			raise NotImplementedError(f'Goal {self._goal} is not implemented.')
 
 
+class StandRandomized(hopper.Hopper):
+	"""Domain Randomization版Hopper Stand Task
+	
+	エピソードごとに胴体質量をランダム化:
+	- torso_mass: uniform(1.96, 9.8) (デフォルト~3.92の0.5×～2.5×)
+	"""
+	
+	def __init__(self, random=None):
+		super().__init__(None, random)
+		# デフォルト質量 ~3.92 の 0.5× ~ 2.5×
+		self._torso_mass_range = (1.96, 9.8)
+	
+	def initialize_episode(self, physics):
+		"""エピソードごとに胴体質量をランダム化"""
+		# 新しい胴体質量をサンプリング
+		torso_mass = self.random.uniform(*self._torso_mass_range)
+		
+		# Physics内部のモデルを直接変更
+		# hopperの場合、body index 1がtorso
+		physics.model.body_mass[1] = torso_mass
+		
+		# 親クラスの初期化を呼ぶ
+		super().initialize_episode(physics)
+
+
+@hopper.SUITE.add('custom')
+def stand_randomized(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+	"""Domain Randomization版Hopper Stand
+	
+	エピソードごとに胴体質量をランダム化:
+	- torso_mass: uniform(2.0, 6.0)
+	
+	Transformerが In-Context Learning により胴体質量を学習するための環境。
+	"""
+	physics = hopper.Physics.from_xml_string(*get_model_and_assets())
+	task = StandRandomized(random=random)
+	environment_kwargs = environment_kwargs or {}
+	return control.Environment(
+		physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP,
+		**environment_kwargs)
+
+
+class StandFixedMass(hopper.Hopper):
+	"""固定胴体質量版Hopper Stand Task"""
+	
+	def __init__(self, torso_mass, random=None):
+		super().__init__(None, random)
+		self._torso_mass = torso_mass
+	
+	def initialize_episode(self, physics):
+		"""固定胴体質量を設定"""
+		physics.model.body_mass[1] = self._torso_mass
+		super().initialize_episode(physics)
+
+
+# Zero-shot評価用の固定質量版タスク (デフォルト ~3.92)
+@hopper.SUITE.add('custom')
+def stand_torso_mass_05x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+	"""Hopper Stand with torso_mass=1.96 (0.5x)"""
+	physics = hopper.Physics.from_xml_string(*get_model_and_assets())
+	task = StandFixedMass(torso_mass=1.96, random=random)
+	environment_kwargs = environment_kwargs or {}
+	return control.Environment(
+		physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP,
+		**environment_kwargs)
+
+
+@hopper.SUITE.add('custom')
+def stand_torso_mass_10x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+	"""Hopper Stand with torso_mass=3.92 (1.0x, baseline)"""
+	physics = hopper.Physics.from_xml_string(*get_model_and_assets())
+	task = StandFixedMass(torso_mass=3.92, random=random)
+	environment_kwargs = environment_kwargs or {}
+	return control.Environment(
+		physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP,
+		**environment_kwargs)
+
+
+@hopper.SUITE.add('custom')
+def stand_torso_mass_15x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+	"""Hopper Stand with torso_mass=5.88 (1.5x)"""
+	physics = hopper.Physics.from_xml_string(*get_model_and_assets())
+	task = StandFixedMass(torso_mass=5.88, random=random)
+	environment_kwargs = environment_kwargs or {}
+	return control.Environment(
+		physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP,
+		**environment_kwargs)
+
+
+@hopper.SUITE.add('custom')
+def stand_torso_mass_20x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+	"""Hopper Stand with torso_mass=7.84 (2.0x)"""
+	physics = hopper.Physics.from_xml_string(*get_model_and_assets())
+	task = StandFixedMass(torso_mass=7.84, random=random)
+	environment_kwargs = environment_kwargs or {}
+	return control.Environment(
+		physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP,
+		**environment_kwargs)
+
+
+@hopper.SUITE.add('custom')
+def stand_torso_mass_25x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+	"""Hopper Stand with torso_mass=9.8 (2.5x)"""
+	physics = hopper.Physics.from_xml_string(*get_model_and_assets())
+	task = StandFixedMass(torso_mass=9.8, random=random)
+	environment_kwargs = environment_kwargs or {}
+	return control.Environment(
+		physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP,
+		**environment_kwargs)
+
+
 if __name__ == '__main__':
 	env = hop_backwards()
 	obs = env.reset()

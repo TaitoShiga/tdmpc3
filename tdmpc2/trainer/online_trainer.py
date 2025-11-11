@@ -74,6 +74,8 @@ class OnlineTrainer(Trainer):
 	def train(self):
 		"""Train a TD-MPC2 agent."""
 		train_metrics, done, eval_next = {}, True, False
+		last_step_metrics = None
+		log_interval = getattr(self.cfg, 'log_interval', 1000)
 		while self._step <= self.cfg.steps:
 			# Evaluate agent periodically
 			if self._step % self.cfg.eval_freq == 0:
@@ -92,12 +94,14 @@ class OnlineTrainer(Trainer):
 						raise ValueError('Termination detected but you are not in episodic mode. ' \
 						'Set `episodic=true` to enable support for terminations.')
 					train_metrics.update(
-						episode_reward=torch.tensor([td['reward'] for td in self._tds[1:]]).sum(),
+						episode_reward=torch.tensor([td['reward'] for td in self._tds[1:]]).sum().item(),
 						episode_success=info['success'],
 						episode_length=len(self._tds),
 						episode_terminated=info['terminated'])
 					train_metrics.update(self.common_metrics())
 					self.logger.log(train_metrics, 'train')
+					train_metrics = {}
+					last_step_metrics = None
 					self._ep_idx = self.buffer.add(torch.cat(self._tds))
 
 				obs = self.env.reset()
@@ -118,10 +122,24 @@ class OnlineTrainer(Trainer):
 					print('Pretraining agent on seed data...')
 				else:
 					num_updates = 1
+				_train_metrics = None
 				for _ in range(num_updates):
 					_train_metrics = self.agent.update(self.buffer)
-				train_metrics.update(_train_metrics)
+				if _train_metrics is not None:
+					step_metrics = {}
+					for k, v in _train_metrics.items():
+						step_metrics[k] = float(v.item()) if torch.is_tensor(v) else v
+					if self.cfg.multitask and 'task' in step_metrics:
+						step_metrics.pop('task')
+					last_step_metrics = step_metrics
+					if self._step % log_interval == 0:
+						step_metrics.update(self.common_metrics())
+						self.logger.log(step_metrics, 'train')
 
 			self._step += 1
+
+		if last_step_metrics:
+			last_step_metrics.update(self.common_metrics())
+			self.logger.log(last_step_metrics, 'train')
 
 		self.logger.finish(self.agent)
