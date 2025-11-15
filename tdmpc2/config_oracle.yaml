@@ -2,23 +2,17 @@ defaults:
     - override hydra/launcher: submitit_local
 
 # environment
-task: dog-run
+task: pendulum-swingup
 obs: state
 episodic: false
-
-# Oracle mode (use true physics parameters)
-use_oracle: false
-c_phys_dim: 1
-phys_param_type: mass
-phys_param_normalization: standard
 
 # evaluation
 checkpoint: ???
 eval_episodes: 10
-eval_freq: 50000
+eval_freq: 10000
 
 # training
-steps: 10_000_000
+steps: 500_000
 log_interval: 1000
 batch_size: 256
 reward_coef: 0.1
@@ -34,7 +28,7 @@ discount_denom: 5
 discount_min: 0.95
 discount_max: 0.995
 buffer_size: 1_000_000
-exp_name: default
+exp_name: oracle
 data_dir: ???
 
 # planning
@@ -60,7 +54,7 @@ vmin: -10
 vmax: +10
 
 # architecture
-model_size: ???
+model_size: 5
 num_enc_layers: 2
 enc_dim: 256
 num_channels: 32
@@ -71,25 +65,26 @@ num_q: 5
 dropout: 0.01
 simnorm_dim: 8
 
-# transformer (for In-Context Learning)
-use_transformer: false
-context_length: 50
-transformer_layers: 4
-transformer_heads: 8
-transformer_dim: 512
+# Oracle specific: physics parameters
+c_phys_dim: 1  # 物理パラメータの次元（pendulumの場合は質量のみ）
+phys_param_type: mass  # 'mass', 'friction', 'damping'
+phys_param_indices: null  # null の場合は自動検出
+phys_param_normalization: standard  # 'standard', 'minmax', 'none'
+phys_param_default: null  # null の場合は環境に応じた値を使用
+phys_param_scale: null  # null の場合は環境に応じた値を使用
 
 # logging
-wandb_project: ???
+wandb_project: tdmpc2-oracle
 wandb_entity: ???
 wandb_silent: false
-enable_wandb: true
+enable_wandb: false
 save_csv: true
 
 # misc
-compile: true
-save_video: true
+compile: false  # Oracleではまず安定性を優先
+save_video: false
 save_agent: true
-seed: 1
+seed: 0
 
 # convenience
 work_dir: ???
@@ -104,3 +99,4 @@ action_dims: ???
 episode_lengths: ???
 seed_steps: ???
 bin_size: ???
+

@@ -19,6 +19,16 @@ from trainer.offline_trainer import OfflineTrainer
 from trainer.online_trainer import OnlineTrainer
 from common.logger import Logger
 
+# Oracle imports (conditional)
+try:
+	from common.buffer_oracle import OracleBuffer
+	from tdmpc2_oracle import TDMPC2Oracle
+	from trainer.online_trainer_oracle import OnlineTrainerOracle
+	from envs.wrappers.physics_param import wrap_with_physics_param
+	ORACLE_AVAILABLE = True
+except ImportError:
+	ORACLE_AVAILABLE = False
+
 torch.backends.cudnn.benchmark = True
 torch.set_float32_matmul_precision('high')
 
@@ -47,14 +57,51 @@ def train(cfg: dict):
 	assert cfg.steps > 0, 'Must train for at least 1 step.'
 	cfg = parse_cfg(cfg)
 	set_seed(cfg.seed)
+	
+	# Oracle mode check
+	use_oracle = getattr(cfg, 'use_oracle', False)
+	if use_oracle and not ORACLE_AVAILABLE:
+		raise ImportError(
+			'Oracle mode is enabled but Oracle components are not available. '
+			'Make sure all Oracle files are present in the tdmpc2 directory.'
+		)
+	
 	print(colored('Work dir:', 'yellow', attrs=['bold']), cfg.work_dir)
-
-	trainer_cls = OfflineTrainer if cfg.multitask else OnlineTrainer
+	if use_oracle:
+		print(colored('Mode:', 'cyan', attrs=['bold']), 'Oracle (using true physics parameters)')
+		print(colored('c_phys_dim:', 'cyan'), cfg.c_phys_dim)
+	else:
+		print(colored('Mode:', 'cyan', attrs=['bold']), 'Standard')
+	
+	# Create environment
+	env = make_env(cfg)
+	if use_oracle:
+		env = wrap_with_physics_param(env, cfg)
+		print(colored('Physics parameter wrapper enabled:', 'green'))
+		print(colored(f'  - param_type: {env.param_type}', 'green'))
+		print(colored(f'  - normalization: {env.normalization}', 'green'))
+		print(colored(f'  - default_value: {env.default_value}', 'green'))
+	
+	# Select components based on mode
+	if cfg.multitask:
+		trainer_cls = OfflineTrainer
+		agent_cls = TDMPC2
+		buffer_cls = Buffer
+	elif use_oracle:
+		trainer_cls = OnlineTrainerOracle
+		agent_cls = TDMPC2Oracle
+		buffer_cls = OracleBuffer
+	else:
+		trainer_cls = OnlineTrainer
+		agent_cls = TDMPC2
+		buffer_cls = Buffer
+	
+	# Create trainer
 	trainer = trainer_cls(
 		cfg=cfg,
-		env=make_env(cfg),
-		agent=TDMPC2(cfg),
-		buffer=Buffer(cfg),
+		env=env,
+		agent=agent_cls(cfg),
+		buffer=buffer_cls(cfg),
 		logger=Logger(cfg),
 	)
 	trainer.train()
