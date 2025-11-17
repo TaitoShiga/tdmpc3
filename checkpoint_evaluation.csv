@@ -1,0 +1,4 @@
+name,mean_reward,std_reward,mean_success,mean_length,min_reward,max_reward
+Model B (DR),799.25,144.33846,0.0,500.0,497.0,941.0
+Model C,752.8,231.35484,0.0,500.0,0.0,940.0
+Model O,805.9,137.12837,0.0,500.0,492.0,940.0
