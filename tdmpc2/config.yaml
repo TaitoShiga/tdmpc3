@@ -12,6 +12,17 @@ c_phys_dim: 1
 phys_param_type: mass
 phys_param_normalization: standard
 
+# Model C mode (GRU physics estimator)
+use_model_c: false
+estimator_type: gru  # 'gru' or 'mlp'
+# context_length: 50 は transformerセクション(87行目)で定義済み
+gru_hidden_dim: 256  # GRU隠れ層次元
+gru_num_layers: 2  # GRU層数
+gru_dropout: 0.1  # ドロップアウト率
+gru_lr: 3e-4  # GRU学習率
+gru_weight_decay: 1e-5  # GRU重み減衰
+gru_pretrained: ???  # 事前学習済みGRUのパス（オプション）
+
 # evaluation
 checkpoint: ???
 eval_episodes: 10

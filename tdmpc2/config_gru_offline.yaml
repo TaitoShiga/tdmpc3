@@ -1,0 +1,42 @@
+defaults:
+    - override hydra/launcher: submitit_local
+
+# environment
+task: pendulum-swingup-randomized
+obs: state
+episodic: false
+
+# Physics parameters
+c_phys_dim: 1
+phys_param_type: mass
+phys_param_normalization: standard
+
+# Data collection
+num_episodes: 1000  # 収集するエピソード数
+episode_length: 500
+num_samples_per_episode: 5  # 各エピソードから切り出すサンプル数
+
+# GRU architecture
+estimator_type: gru  # 'gru' or 'mlp'
+context_length: 50  # 履歴長（何ステップ見るか）
+gru_hidden_dim: 256  # GRUの隠れ層次元
+gru_num_layers: 2  # GRUの層数
+gru_dropout: 0.1  # ドロップアウト率
+
+# Training
+gru_epochs: 100  # 学習エポック数
+gru_batch_size: 128  # バッチサイズ
+gru_lr: 3e-4  # 学習率
+gru_weight_decay: 1e-5  # 重み減衰
+gru_grad_clip: 10.0  # 勾配クリッピング
+
+# Logging
+log_interval: 10  # ログ出力の頻度
+save_model: true
+
+# Misc
+seed: 0
+work_dir: ???
+obs_shape: ???
+action_dim: ???
+

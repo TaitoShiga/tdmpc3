@@ -29,6 +29,15 @@ try:
 except ImportError:
 	ORACLE_AVAILABLE = False
 
+# Model C imports (conditional)
+try:
+	from common.buffer_model_c import ModelCBuffer
+	from tdmpc2_model_c import TDMPC2ModelC
+	from trainer.online_trainer_model_c import OnlineTrainerModelC
+	MODEL_C_AVAILABLE = True
+except ImportError:
+	MODEL_C_AVAILABLE = False
+
 torch.backends.cudnn.benchmark = True
 torch.set_float32_matmul_precision('high')
 
@@ -58,16 +67,34 @@ def train(cfg: dict):
 	cfg = parse_cfg(cfg)
 	set_seed(cfg.seed)
 	
-	# Oracle mode check
+	# Mode selection
 	use_oracle = getattr(cfg, 'use_oracle', False)
+	use_model_c = getattr(cfg, 'use_model_c', False)
+	
+	# Validation
+	if use_oracle and use_model_c:
+		raise ValueError('Cannot use both Oracle and Model C modes simultaneously.')
+	
 	if use_oracle and not ORACLE_AVAILABLE:
 		raise ImportError(
 			'Oracle mode is enabled but Oracle components are not available. '
 			'Make sure all Oracle files are present in the tdmpc2 directory.'
 		)
 	
+	if use_model_c and not MODEL_C_AVAILABLE:
+		raise ImportError(
+			'Model C mode is enabled but Model C components are not available. '
+			'Make sure all Model C files are present in the tdmpc2 directory.'
+		)
+	
+	# Print mode
 	print(colored('Work dir:', 'yellow', attrs=['bold']), cfg.work_dir)
-	if use_oracle:
+	if use_model_c:
+		print(colored('Mode:', 'cyan', attrs=['bold']), 'Model C (GRU physics estimator)')
+		print(colored('c_phys_dim:', 'cyan'), cfg.c_phys_dim)
+		print(colored('context_length:', 'cyan'), cfg.context_length)
+		print(colored('gru_hidden_dim:', 'cyan'), cfg.gru_hidden_dim)
+	elif use_oracle:
 		print(colored('Mode:', 'cyan', attrs=['bold']), 'Oracle (using true physics parameters)')
 		print(colored('c_phys_dim:', 'cyan'), cfg.c_phys_dim)
 	else:
@@ -75,7 +102,7 @@ def train(cfg: dict):
 	
 	# Create environment
 	env = make_env(cfg)
-	if use_oracle:
+	if use_oracle or use_model_c:
 		env = wrap_with_physics_param(env, cfg)
 		print(colored('Physics parameter wrapper enabled:', 'green'))
 		print(colored(f'  - param_type: {env.param_type}', 'green'))
@@ -87,6 +114,10 @@ def train(cfg: dict):
 		trainer_cls = OfflineTrainer
 		agent_cls = TDMPC2
 		buffer_cls = Buffer
+	elif use_model_c:
+		trainer_cls = OnlineTrainerModelC
+		agent_cls = TDMPC2ModelC
+		buffer_cls = ModelCBuffer
 	elif use_oracle:
 		trainer_cls = OnlineTrainerOracle
 		agent_cls = TDMPC2Oracle
@@ -96,11 +127,23 @@ def train(cfg: dict):
 		agent_cls = TDMPC2
 		buffer_cls = Buffer
 	
+	# Create agent
+	agent = agent_cls(cfg)
+	
+	# Load pretrained GRU (Model C only)
+	if use_model_c and hasattr(cfg, 'gru_pretrained') and cfg.gru_pretrained:
+		# Check if gru_pretrained is a valid path (not a placeholder like '???')
+		if cfg.gru_pretrained not in ['???', 'null', '', None]:
+			print(colored(f'Loading pretrained GRU from: {cfg.gru_pretrained}', 'magenta'))
+			agent.load_pretrained_gru(cfg.gru_pretrained)
+		else:
+			print(colored('Training GRU from scratch (no pretrained model specified)', 'yellow'))
+	
 	# Create trainer
 	trainer = trainer_cls(
 		cfg=cfg,
 		env=env,
-		agent=agent_cls(cfg),
+		agent=agent,
 		buffer=buffer_cls(cfg),
 		logger=Logger(cfg),
 	)
