@@ -102,15 +102,21 @@ def evaluate_checkpoint(agent, env, num_episodes=10, use_oracle=False, use_model
         while not done:
             # アクション選択
             if use_model_c:
+                # Model C: act()内で自動的に履歴から推定される
+                # 注意: act()内でt0=Trueの時に自動的にreset_history()が呼ばれる
                 action = agent.act(obs, t0=(t==0), eval_mode=True)
+                # アクション実行後に履歴を更新（次のステップの推定に使用）
+                obs_next, reward, done, info = env.step(action)
                 agent.update_history(obs, action)
+                obs = obs_next
             elif use_oracle:
                 c_phys = env.current_c_phys
                 action = agent.act(obs, c_phys, t0=(t==0), eval_mode=True)
+                obs, reward, done, info = env.step(action)
             else:
                 action = agent.act(obs, t0=(t==0), eval_mode=True)
+                obs, reward, done, info = env.step(action)
             
-            obs, reward, done, info = env.step(action)
             ep_reward += reward
             t += 1
             
