@@ -1,0 +1,29 @@
+#!/bin/bash
+#SBATCH -J tdmpc2-test-baseline
+#SBATCH -n 1
+#SBATCH --gres=gpu:1
+#SBATCH -c 8
+#SBATCH --mem=32G
+#SBATCH -t 02:00:00
+#SBATCH -o logs/%x-%j.out
+#SBATCH -e logs/%x-%j.err
+
+# モジュールと conda の初期化
+source /etc/profile.d/modules.sh
+module load slurm/23.02.7
+source ~/.bashrc
+conda activate tdmpc2
+
+# ログディレクトリ作成
+mkdir -p logs
+
+# 作業ディレクトリへ移動
+cd ~/tdmpc3/tdmpc3
+
+# テスト実行: Baseline, 5000ステップ
+echo "=========================================="
+echo "Test Run: Baseline (5000 steps)"
+echo "=========================================="
+python tdmpc2/train.py task=pendulum-swingup seed=0 steps=5000 \
+    exp_name=test_baseline log_interval=100 compile=false enable_wandb=false
+
