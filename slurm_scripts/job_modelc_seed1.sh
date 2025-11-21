@@ -20,5 +20,5 @@ cd ~/tdmpc3/tdmpc3
 
 # 実験コマンド: Model C (Proposed Method), Seed 1
 python tdmpc2/train.py task=pendulum-swingup-randomized use_model_c=true seed=1 steps=100000 \
-    exp_name=modelc log_interval=100 compile=false enable_wandb=false
+    exp_name=modelc log_interval=100 eval_freq=500 compile=false enable_wandb=false
 

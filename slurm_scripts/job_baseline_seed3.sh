@@ -20,5 +20,5 @@ cd ~/tdmpc3/tdmpc3
 
 # 実験コマンド: Baseline, Seed 3
 python tdmpc2/train.py task=pendulum-swingup seed=3 steps=100000 \
-    exp_name=baseline log_interval=100 compile=false enable_wandb=false
+    exp_name=baseline log_interval=100 eval_freq=500 compile=false enable_wandb=false
 

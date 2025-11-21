@@ -20,5 +20,5 @@ cd ~/tdmpc3/tdmpc3
 
 # 実験コマンド: Model O (Oracle), Seed 2
 python tdmpc2/train.py task=pendulum-swingup-randomized use_oracle=true seed=2 steps=100000 \
-    exp_name=oracle log_interval=100 compile=false enable_wandb=false
+    exp_name=oracle log_interval=100 eval_freq=500 compile=false enable_wandb=false
 

@@ -23,5 +23,5 @@ echo "=========================================="
 echo "Test Run: Model C (5000 steps)"
 echo "=========================================="
 python tdmpc2/train.py task=pendulum-swingup-randomized use_model_c=true seed=0 steps=5000 \
-    exp_name=test_modelc log_interval=100 compile=false enable_wandb=false
+    exp_name=test_modelc log_interval=100 eval_freq=500 compile=false enable_wandb=false
 
