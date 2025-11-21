@@ -8,10 +8,8 @@
 #SBATCH -o logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 
-# モジュールと conda の初期化
-source /etc/profile.d/modules.sh
-module load slurm/23.02.7
-source ~/.bashrc
+# === conda 初期化（これが重要）===
+eval "$(conda shell.bash hook)"
 conda activate tdmpc2
 
 # ログディレクトリ作成
