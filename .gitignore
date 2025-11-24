@@ -134,3 +134,5 @@ dmypy.json
 /checkpoints/
 /assets/
 /results/
+logs_remote/
+
