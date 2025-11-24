@@ -55,6 +55,18 @@ def swingup_mass2(time_limit=_DEFAULT_TIME_LIMIT,
 
 
 @pendulum.SUITE.add('custom')
+def swingup_mass05(time_limit=_DEFAULT_TIME_LIMIT,
+                   random=None,
+                   environment_kwargs=None):
+  """Returns pendulum swing-up task with mass=0.5."""
+  physics = pendulum.Physics.from_xml_string(*get_model_and_assets(mass=0.5))
+  task = pendulum.SwingUp(random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(
+      physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@pendulum.SUITE.add('custom')
 def swingup_mass15(time_limit=_DEFAULT_TIME_LIMIT,
                    random=None,
                    environment_kwargs=None):

@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# 一時ファイル
+*.tmp
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
