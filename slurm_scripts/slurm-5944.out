@@ -1,0 +1,54 @@
+Starting batch submission of 20 tdmpc2 jobs...
+==============================================
+Submitting Baseline jobs...
+Submitted batch job 5945
+  - Submitted: job_baseline_seed0.sh
+Submitted batch job 5946
+  - Submitted: job_baseline_seed1.sh
+Submitted batch job 5947
+  - Submitted: job_baseline_seed2.sh
+Submitted batch job 5948
+  - Submitted: job_baseline_seed3.sh
+Submitted batch job 5949
+  - Submitted: job_baseline_seed4.sh
+Submitting DR jobs...
+Submitted batch job 5950
+  - Submitted: job_dr_seed0.sh
+Submitted batch job 5951
+  - Submitted: job_dr_seed1.sh
+Submitted batch job 5952
+  - Submitted: job_dr_seed2.sh
+Submitted batch job 5953
+  - Submitted: job_dr_seed3.sh
+Submitted batch job 5954
+  - Submitted: job_dr_seed4.sh
+Submitting Oracle jobs...
+Submitted batch job 5955
+  - Submitted: job_oracle_seed0.sh
+Submitted batch job 5956
+  - Submitted: job_oracle_seed1.sh
+Submitted batch job 5957
+  - Submitted: job_oracle_seed2.sh
+Submitted batch job 5958
+  - Submitted: job_oracle_seed3.sh
+Submitted batch job 5959
+  - Submitted: job_oracle_seed4.sh
+Submitting Model C jobs...
+Submitted batch job 5960
+  - Submitted: job_modelc_seed0.sh
+Submitted batch job 5961
+  - Submitted: job_modelc_seed1.sh
+Submitted batch job 5962
+  - Submitted: job_modelc_seed2.sh
+Submitted batch job 5963
+  - Submitted: job_modelc_seed3.sh
+Submitted batch job 5964
+  - Submitted: job_modelc_seed4.sh
+==============================================
+All 20 jobs submitted successfully!
+
+Check job status with:
+  squeue -u shiga-t
+
+Monitor specific job:
+  tail -f logs/tdmpc2-<model>-seed<N>-<jobid>.out

@@ -1,0 +1,22 @@
+Starting test batch submission (5000 steps each)...
+==============================================
+Submitting test jobs...
+sbatch: error: Unable to open file job_test_baseline.sh
+  - Submitted: job_test_baseline.sh
+sbatch: error: Unable to open file job_test_dr.sh
+  - Submitted: job_test_dr.sh
+sbatch: error: Unable to open file job_test_oracle.sh
+  - Submitted: job_test_oracle.sh
+sbatch: error: Unable to open file job_test_modelc.sh
+  - Submitted: job_test_modelc.sh
+==============================================
+All 4 test jobs submitted!
+
+Check job status with:
+  squeue -u shiga-t
+
+Monitor logs:
+  tail -f logs/tdmpc2-test-baseline-*.out
+  tail -f logs/tdmpc2-test-dr-*.out
+  tail -f logs/tdmpc2-test-oracle-*.out
+  tail -f logs/tdmpc2-test-modelc-*.out

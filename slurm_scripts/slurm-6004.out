@@ -1,0 +1,39 @@
+Starting batch submission of 5 evaluation jobs...
+==============================================
+
+Each job evaluates:
+  - 4 models: baseline, dr, Model C, Oracle
+  - 5 params: 0.5, 1.0, 1.5, 2.0, 2.5
+  - 30 episodes per (model, param)
+
+Total per job: 4 × 5 × 30 = 600 episodes
+Estimated time per job: ~2-4 hours
+
+==============================================
+Submitting evaluation jobs...
+sbatch: error: Unable to open file slurm_scripts/job_eval_seed0.sh
+  ✓ Submitted: job_eval_seed0.sh
+sbatch: error: Unable to open file slurm_scripts/job_eval_seed1.sh
+  ✓ Submitted: job_eval_seed1.sh
+sbatch: error: Unable to open file slurm_scripts/job_eval_seed2.sh
+  ✓ Submitted: job_eval_seed2.sh
+sbatch: error: Unable to open file slurm_scripts/job_eval_seed3.sh
+  ✓ Submitted: job_eval_seed3.sh
+sbatch: error: Unable to open file slurm_scripts/job_eval_seed4.sh
+  ✓ Submitted: job_eval_seed4.sh
+
+==============================================
+All 5 evaluation jobs submitted successfully!
+
+Check job status with:
+  squeue -u $USER
+
+Monitor specific job:
+  tail -f logs/tdmpc2-eval-seed<N>-<jobid>.out
+
+After all jobs complete, merge results:
+  cat results_seed*.csv | head -1 > results.csv
+  for i in 0 1 2 3 4; do tail -n +2 results_seed$i.csv >> results.csv; done
+
+Then run statistical analysis:
+  python evaluate/analyze_results.py
