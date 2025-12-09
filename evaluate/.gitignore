@@ -1,13 +1,13 @@
-# Python
+# 動画ファイル
+videos/
+*.mp4
+*.avi
+*.mov
+
+# 評価結果
+results*.csv
+*.png
+
+# Pythonキャッシュ
 __pycache__/
 *.pyc
-*.pyo
-*.egg-info/
-
-# 一時ファイル
-*.tmp
-*.log
-
-# Jupyter
-.ipynb_checkpoints/
-

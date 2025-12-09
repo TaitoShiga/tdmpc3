@@ -211,6 +211,16 @@ class PhysicsParamWrapper(gym.Wrapper):
 		if self._current_c_phys is None:
 			self._current_c_phys = self.get_physics_param()
 		return self._current_c_phys
+	
+	@current_c_phys.setter
+	def current_c_phys(self, value):
+		"""キャッシュを書き換えるためのセッター（動画用評価で使用）"""
+		if value is None:
+			self._current_c_phys = None
+			return
+		tensor = torch.as_tensor(value, dtype=torch.float32)
+		# Oracleのactなどは1次元Tensorを想定するためflattenして保持
+		self._current_c_phys = tensor.view(-1)
 
 
 def wrap_with_physics_param(env, cfg):
@@ -238,4 +248,3 @@ def wrap_with_physics_param(env, cfg):
 		domain=domain,
 		task=task,
 	)
-
