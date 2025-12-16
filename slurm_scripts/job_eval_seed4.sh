@@ -23,7 +23,7 @@ cd ~/tdmpc3/tdmpc3
 python evaluate/evaluate_all_models.py \
     --seeds 4 \
     --episodes 30 \
-    --test-params 0.5 1.0 1.5 2.0 2.5 \
+    --test-params 0.2 0.3 0.4 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0\
     --output results_seed4.csv \
     --logs-dir logs \
     --task pendulum-swingup \
