@@ -135,4 +135,4 @@ dmypy.json
 /assets/
 /results/
 logs_remote/
-
+figures/ 

@@ -19,6 +19,7 @@ class PhysicsParamWrapper(gym.Wrapper):
 	- pendulum-swingup: body_mass[-1] (振り子の質量)
 	- ball_in_cup-catch: body_mass[2] (ボールの質量)
 	- hopper-stand: body_mass[複数] (Hopperの各部の質量)
+	- cheetah-run: geom_friction['ground'] (地面の摩擦係数)
 	- reacher-three_easy: 未実装
 	
 	Args:
@@ -63,28 +64,47 @@ class PhysicsParamWrapper(gym.Wrapper):
 	
 	def _set_default_params(self):
 		"""環境に応じたデフォルト値とスケールを設定"""
-		if self.domain == 'pendulum':
-			# Pendulum: デフォルト質量=1.0, DRの範囲=(0.5, 2.5)
-			# 平均=1.5, 標準偏差≈0.577
-			self.default_value = np.array([1.0])
-			self.scale = np.array([1.0])  # 質量1.0を基準とした正規化
+		if self.param_type == 'friction':
+			# Friction parameters
+			if self.domain == 'cheetah':
+				# Cheetah: デフォルト摩擦=0.4, DRの範囲=(0.2, 0.8)
+				# 平均=0.5, 標準偏差≈0.173
+				self.default_value = np.array([0.4])
+				self.scale = np.array([0.3])  # (0.8-0.2)/2 = 0.3
+			else:
+				# 汎用的なデフォルト
+				self.default_value = np.array([0.5])
+				self.scale = np.array([0.3])
 		
-		elif self.domain == 'ball_in_cup':
-			# Ball-in-Cup: デフォルト質量≈0.006, DRの範囲=(0.003, 0.015)
-			self.default_value = np.array([0.006])
-			self.scale = np.array([0.006])
-		
-		elif self.domain == 'hopper':
-			# Hopper: 複数の質量パラメータ
-			# とりあえず主要な3つ（torso, thigh, leg）を使用
-			self.default_value = np.array([3.92699082, 3.53429174, 2.71433605])
-			self.scale = np.array([3.92699082, 3.53429174, 2.71433605])
-		
-		elif self.domain == 'reacher':
-			# Reacher: 複数の質量パラメータ
-			# とりあえずarm0, arm1, fingerを使用
-			self.default_value = np.array([0.0, 0.0, 0.01])
-			self.scale = np.array([0.01, 0.01, 0.01])
+		elif self.param_type == 'mass':
+			# Mass parameters
+			if self.domain == 'pendulum':
+				# Pendulum: デフォルト質量=1.0, DRの範囲=(0.5, 2.5)
+				# 平均=1.5, 標準偏差≈0.577
+				self.default_value = np.array([1.0])
+				self.scale = np.array([1.0])  # 質量1.0を基準とした正規化
+			
+			elif self.domain == 'ball_in_cup':
+				# Ball-in-Cup: デフォルト質量≈0.006, DRの範囲=(0.003, 0.015)
+				self.default_value = np.array([0.006])
+				self.scale = np.array([0.006])
+			
+			elif self.domain == 'hopper':
+				# Hopper: 複数の質量パラメータ
+				# とりあえず主要な3つ（torso, thigh, leg）を使用
+				self.default_value = np.array([3.92699082, 3.53429174, 2.71433605])
+				self.scale = np.array([3.92699082, 3.53429174, 2.71433605])
+			
+			elif self.domain == 'reacher':
+				# Reacher: 複数の質量パラメータ
+				# とりあえずarm0, arm1, fingerを使用
+				self.default_value = np.array([0.0, 0.0, 0.01])
+				self.scale = np.array([0.01, 0.01, 0.01])
+			
+			else:
+				# 汎用的なデフォルト
+				self.default_value = np.array([1.0])
+				self.scale = np.array([1.0])
 		
 		else:
 			# 汎用的なデフォルト
@@ -99,14 +119,25 @@ class PhysicsParamWrapper(gym.Wrapper):
 			return len(self.param_indices)
 		
 		# 環境に応じた自動検出
-		if self.domain == 'pendulum':
-			return 1
-		elif self.domain == 'ball_in_cup':
-			return 1
-		elif self.domain == 'hopper':
-			return 3  # torso, thigh, leg
-		elif self.domain == 'reacher':
-			return 3  # arm0, arm1, finger
+		if self.param_type == 'friction':
+			# Friction: 通常は1次元（地面の摩擦係数）
+			if self.domain == 'cheetah':
+				return 1
+			else:
+				return 1
+		
+		elif self.param_type == 'mass':
+			if self.domain == 'pendulum':
+				return 1
+			elif self.domain == 'ball_in_cup':
+				return 1
+			elif self.domain == 'hopper':
+				return 3  # torso, thigh, leg
+			elif self.domain == 'reacher':
+				return 3  # arm0, arm1, finger
+			else:
+				return 1
+		
 		else:
 			return 1
 	
@@ -142,8 +173,26 @@ class PhysicsParamWrapper(gym.Wrapper):
 					return physics.model.body_mass[1:4]  # arm0, arm1, finger
 			
 			elif self.param_type == 'friction':
-				# TODO: 摩擦パラメータの取得
-				raise NotImplementedError("Friction parameter extraction not implemented")
+				# 摩擦パラメータの取得
+				if self.param_indices is not None:
+					if isinstance(self.param_indices, int):
+						# 特定のgeomの摩擦を取得（sliding frictionのみ）
+						return np.array([physics.model.geom_friction[self.param_indices, 0]])
+					# 複数のgeomの摩擦
+					return physics.model.geom_friction[self.param_indices, 0]
+				
+				# 環境に応じた自動検出
+				if self.domain == 'cheetah':
+					# Cheetah: groundのgeomの摩擦を取得
+					try:
+						ground_geom_id = physics.model.name2id('ground', 'geom')
+						return np.array([physics.model.geom_friction[ground_geom_id, 0]])
+					except:
+						return self.default_value.copy()
+				
+				else:
+					# その他の環境: 最初のgeomの摩擦
+					return np.array([physics.model.geom_friction[0, 0]])
 			
 			elif self.param_type == 'damping':
 				# TODO: ダンピングパラメータの取得

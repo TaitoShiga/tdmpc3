@@ -1,10 +1,12 @@
 import os
+import xml.etree.ElementTree as ET
 
 from dm_control.rl import control
 from dm_control.suite import common
 from dm_control.suite import cheetah
 from dm_control.utils import rewards
 from dm_control.utils import io as resources
+import numpy as np
 
 _TASKS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'tasks')
 
@@ -13,9 +15,23 @@ _CHEETAH_LIE_HEIGHT = 0.25
 _CHEETAH_SPIN_SPEED = 8
 
 
-def get_model_and_assets():
-    """Returns a tuple containing the model XML string and a dict of assets."""
-    return resources.GetResource(os.path.join(_TASKS_DIR, 'cheetah.xml')), common.ASSETS
+def get_model_and_assets(friction=None):
+    """Returns a tuple containing the model XML string and a dict of assets.
+    
+    Args:
+        friction: Ground friction value to assign. If None, uses default (0.4).
+    """
+    model_xml = resources.GetResource(os.path.join(_TASKS_DIR, 'cheetah.xml'))
+    if friction is not None:
+        root = ET.fromstring(model_xml)
+        for geom in root.iter('geom'):
+            if geom.get('name') == 'ground':
+                # MuJoCoの摩擦は [sliding, torsional, rolling]
+                friction_str = f"{friction} {friction*0.25} {friction*0.025}"
+                geom.set('friction', friction_str)
+                break
+        model_xml = ET.tostring(root, encoding='unicode')
+    return model_xml, common.ASSETS
 
 
 @cheetah.SUITE.add('custom')
@@ -124,6 +140,104 @@ class Physics(cheetah.Physics):
     def angmomentum(self):
         """Returns the angular momentum of torso of the Cheetah about Y axis."""
         return self.named.data.subtree_angmom['torso'][1]
+
+
+class CheetahRandomized(cheetah.Cheetah):
+    """Domain Randomization版Cheetah Task
+    
+    エピソードごとに物理パラメータをランダム化:
+    - ground_friction: 地面の滑り摩擦係数 uniform(0.2, 0.8)
+    """
+    
+    def __init__(self, random=None):
+        super().__init__(random=random)
+        self._friction_range = (0.2, 0.8)  # 滑り摩擦の範囲
+        self.current_friction = 0.4  # 現在の摩擦係数（デフォルト）
+    
+    def initialize_episode(self, physics):
+        """エピソードごとに地面摩擦をランダム化"""
+        # 新しい摩擦係数をサンプリング
+        friction = self.random.uniform(*self._friction_range)
+        self.current_friction = friction  # 現在の摩擦を記録（Oracleアクセス用）
+        
+        # Physics内部のモデルを直接変更
+        # groundのgeom IDを取得して摩擦を変更
+        ground_geom_id = physics.model.name2id('ground', 'geom')
+        
+        # MuJoCo の friction は [sliding, torsional, rolling] の3要素
+        # 主に最初の要素（sliding friction）を変更
+        physics.model.geom_friction[ground_geom_id, 0] = friction
+        physics.model.geom_friction[ground_geom_id, 1] = friction * 0.25  # torsional
+        physics.model.geom_friction[ground_geom_id, 2] = friction * 0.025  # rolling
+        
+        # 親クラスの初期化を呼ぶ（初期姿勢のランダム化など）
+        super().initialize_episode(physics)
+
+
+@cheetah.SUITE.add('custom')
+def run_friction02(time_limit=cheetah._DEFAULT_TIME_LIMIT,
+                   random=None,
+                   environment_kwargs=None):
+    """Cheetah-Run with low friction (0.2) - slippery surface."""
+    physics = cheetah.Physics.from_xml_string(*get_model_and_assets(friction=0.2))
+    task = cheetah.Cheetah(random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@cheetah.SUITE.add('custom')
+def run_friction04(time_limit=cheetah._DEFAULT_TIME_LIMIT,
+                   random=None,
+                   environment_kwargs=None):
+    """Cheetah-Run with default friction (0.4)."""
+    physics = cheetah.Physics.from_xml_string(*get_model_and_assets(friction=0.4))
+    task = cheetah.Cheetah(random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@cheetah.SUITE.add('custom')
+def run_friction06(time_limit=cheetah._DEFAULT_TIME_LIMIT,
+                   random=None,
+                   environment_kwargs=None):
+    """Cheetah-Run with medium-high friction (0.6)."""
+    physics = cheetah.Physics.from_xml_string(*get_model_and_assets(friction=0.6))
+    task = cheetah.Cheetah(random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@cheetah.SUITE.add('custom')
+def run_friction08(time_limit=cheetah._DEFAULT_TIME_LIMIT,
+                   random=None,
+                   environment_kwargs=None):
+    """Cheetah-Run with high friction (0.8) - grippy surface."""
+    physics = cheetah.Physics.from_xml_string(*get_model_and_assets(friction=0.8))
+    task = cheetah.Cheetah(random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@cheetah.SUITE.add('custom')
+def run_randomized(time_limit=cheetah._DEFAULT_TIME_LIMIT,
+                   random=None,
+                   environment_kwargs=None):
+    """Domain Randomization版Cheetah-Run
+    
+    エピソードごとに物理パラメータをランダム化:
+    - ground_friction: uniform(0.2, 0.8)
+    
+    Transformerが In-Context Learning により多様な物理法則を学習するための環境。
+    """
+    physics = cheetah.Physics.from_xml_string(*get_model_and_assets())
+    task = CheetahRandomized(random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, **environment_kwargs)
 
 
 class CustomCheetah(cheetah.Cheetah):
