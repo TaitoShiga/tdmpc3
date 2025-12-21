@@ -13,6 +13,8 @@ from pathlib import Path
 from datetime import datetime
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+LOG_ROOT_ENV = "TDMPC2_LOG_ROOT"
+RUN_ROOT_ENV = "TDMPC2_RUN_ROOT"
 
 # 評価する摩擦係数
 FRICTION_VALUES = [0.2, 0.4, 0.6, 0.8]
@@ -32,6 +34,7 @@ MODELS = [
     {
         'name': 'Model C',
         'exp_name': 'cheetah_model_c',
+        'exp_name_aliases': ['cheetah_modelc'],
         'train_task': 'cheetah-run_randomized',
     },
     {
@@ -60,7 +63,33 @@ def friction_to_task_name(friction):
     return f"cheetah-run_friction{friction_int:02d}"
 
 
-def find_checkpoint(task, exp_name, seed):
+def get_log_roots():
+    roots = []
+    log_root_env = os.environ.get(LOG_ROOT_ENV)
+    if log_root_env:
+        roots.append(Path(log_root_env))
+    run_root_env = os.environ.get(RUN_ROOT_ENV)
+    if run_root_env:
+        roots.append(Path(run_root_env) / "logs")
+    roots.extend([
+        REPO_ROOT / "logs",
+        Path.cwd() / "logs",
+        REPO_ROOT.parent / "logs",
+        Path.home() / "tdmpc3" / "tdmpc3" / "logs",
+        REPO_ROOT / "logs_remote",
+    ])
+    seen = set()
+    unique = []
+    for root in roots:
+        root = Path(root)
+        if root in seen:
+            continue
+        seen.add(root)
+        unique.append(root)
+    return unique
+
+
+def find_checkpoint(task, exp_name, seed, exp_name_aliases=None):
     """チェックポイントを探す
     
     リモートサーバーのディレクトリ構造:
@@ -74,14 +103,16 @@ def find_checkpoint(task, exp_name, seed):
             └── cheetah_oracle/models/final.pt
     """
     # 優先順位の高い順に探索
-    search_paths = [
-        # リモートサーバーのパス (~/tdmpc3/tdmpc3/logs/...)
-        Path.home() / "tdmpc3" / "tdmpc3" / "logs" / task / str(seed) / exp_name / "models" / "final.pt",
-        # ローカルのパス
-        REPO_ROOT / "logs" / task / str(seed) / exp_name / "models" / "final.pt",
-        # チェックポイントディレクトリ
-        REPO_ROOT / "checkpoints" / f"{exp_name}_seed{seed}.pt",
-    ]
+    exp_names = [exp_name]
+    if exp_name_aliases:
+        exp_names.extend([name for name in exp_name_aliases if name not in exp_names])
+
+    search_paths = []
+    for log_root in get_log_roots():
+        for name in exp_names:
+            search_paths.append(log_root / task / str(seed) / name / "models" / "final.pt")
+    for name in exp_names:
+        search_paths.append(REPO_ROOT / "checkpoints" / f"{name}_seed{seed}.pt")
     
     for path in search_paths:
         if path.exists():
@@ -104,7 +135,12 @@ def evaluate_model(model_config, seed, friction):
     eval_task = friction_to_task_name(friction)
     
     # チェックポイントを探す
-    checkpoint = find_checkpoint(train_task, exp_name, seed)
+    checkpoint = find_checkpoint(
+        train_task,
+        exp_name,
+        seed,
+        exp_name_aliases=model_config.get('exp_name_aliases'),
+    )
     if checkpoint is None:
         print(f"❌ Checkpoint not found: {name} seed={seed}")
         return None
@@ -121,7 +157,7 @@ def evaluate_model(model_config, seed, friction):
         sys.executable,
         'tdmpc2/evaluate.py',
         f'task={eval_task}',
-        f'model={checkpoint}',
+        f'checkpoint={checkpoint}',
         f'episodes={NUM_EPISODES}',
         f'seed={seed}',
         'save_video=false',
@@ -247,4 +283,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

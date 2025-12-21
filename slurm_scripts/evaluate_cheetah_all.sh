@@ -18,6 +18,14 @@ mkdir -p logs
 # 作業ディレクトリへ移動（正しいパス）
 cd ~/tdmpc3/tdmpc3
 
+# Resolve log root for evaluation (repo root or its parent).
+RUN_ROOT="$(pwd)"
+if [ ! -d "$RUN_ROOT/logs" ] && [ -d "$RUN_ROOT/../logs" ]; then
+  RUN_ROOT="$(cd "$RUN_ROOT/.." && pwd)"
+fi
+export TDMPC2_RUN_ROOT="$RUN_ROOT"
+export TDMPC2_LOG_ROOT="$RUN_ROOT/logs"
+
 # 4モデル × 5 seeds × 4 frictions の評価
 echo "Starting Cheetah evaluation..."
 python scripts/evaluate_cheetah_all_models.py
