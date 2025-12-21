@@ -47,22 +47,51 @@ NUM_EPISODES = 30  # 統計的有意性のため
 
 
 def friction_to_task_name(friction):
-    """摩擦係数から評価タスク名を生成"""
-    friction_str = f"{int(friction * 10):02d}"
-    return f"cheetah-run_friction{friction_str}"
+    """摩擦係数から評価タスク名を生成
+    
+    Examples:
+        0.2 -> cheetah-run_friction02
+        0.4 -> cheetah-run_friction04
+        0.6 -> cheetah-run_friction06
+        0.8 -> cheetah-run_friction08
+    """
+    # 小数点以下1桁を2桁の整数に変換（0.2 -> 02, 0.4 -> 04）
+    friction_int = int(friction * 10)
+    return f"cheetah-run_friction{friction_int:02d}"
 
 
 def find_checkpoint(task, exp_name, seed):
-    """チェックポイントを探す"""
+    """チェックポイントを探す
+    
+    リモートサーバーのディレクトリ構造:
+    ~/tdmpc3/tdmpc3/logs/
+    ├── cheetah-run_friction04/
+    │   └── 0/cheetah_baseline/models/final.pt
+    └── cheetah-run_randomized/
+        └── 0/
+            ├── cheetah_dr/models/final.pt
+            ├── cheetah_modelc/models/final.pt
+            └── cheetah_oracle/models/final.pt
+    """
     # 優先順位の高い順に探索
     search_paths = [
+        # リモートサーバーのパス (~/tdmpc3/tdmpc3/logs/...)
+        Path.home() / "tdmpc3" / "tdmpc3" / "logs" / task / str(seed) / exp_name / "models" / "final.pt",
+        # ローカルのパス
         REPO_ROOT / "logs" / task / str(seed) / exp_name / "models" / "final.pt",
+        # チェックポイントディレクトリ
         REPO_ROOT / "checkpoints" / f"{exp_name}_seed{seed}.pt",
     ]
     
     for path in search_paths:
         if path.exists():
+            print(f"  Found checkpoint: {path}")
             return path
+    
+    print(f"  ❌ Checkpoint not found for {exp_name} seed={seed}")
+    print(f"  Searched paths:")
+    for path in search_paths:
+        print(f"    - {path}")
     
     return None
 

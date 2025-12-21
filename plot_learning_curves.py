@@ -3,6 +3,19 @@
 
 logs_remote/から各モデルのeval.csvを読み込み、
 学習曲線をプロットして eval_curves.png に保存する。
+
+Usage:
+    # デフォルト（ノイズ除去なし）
+    python plot_learning_curves.py
+    
+    # 移動平均でスムージング
+    python plot_learning_curves.py --smooth moving_average --window 10
+    
+    # ガウシアンフィルタ
+    python plot_learning_curves.py --smooth gaussian --window 5
+    
+    # 指数移動平均
+    python plot_learning_curves.py --smooth ema --alpha 0.1
 """
 
 import pandas as pd
@@ -11,6 +24,9 @@ import numpy as np
 from pathlib import Path
 from typing import Dict, List
 import seaborn as sns
+import argparse
+from scipy.ndimage import gaussian_filter1d
+from scipy.signal import savgol_filter
 
 # 見た目の設定
 sns.set_style("whitegrid")
@@ -55,14 +71,64 @@ def load_eval_csv(model: str, seed: int, logs_dir: Path) -> pd.DataFrame:
     return df
 
 
-def compute_statistics(dfs: List[pd.DataFrame]) -> tuple:
+def smooth_data(data: np.ndarray, method: str, window: int = 10, alpha: float = 0.1, sigma: float = 2.0) -> np.ndarray:
+    """データをスムージングする
+    
+    Args:
+        data: 1D array
+        method: 'moving_average', 'gaussian', 'ema', 'savitzky_golay', or 'none'
+        window: ウィンドウサイズ（moving_average, savitzky_golay用）
+        alpha: 平滑化係数（ema用、0-1、小さいほど滑らか）
+        sigma: ガウシアンフィルタの標準偏差（gaussian用）
+    
+    Returns:
+        スムージングされたデータ
+    """
+    if method == 'none' or method is None:
+        return data
+    
+    elif method == 'moving_average':
+        # 移動平均
+        return pd.Series(data).rolling(window=window, center=True, min_periods=1).mean().values
+    
+    elif method == 'gaussian':
+        # ガウシアンフィルタ
+        return gaussian_filter1d(data, sigma=sigma)
+    
+    elif method == 'ema':
+        # 指数移動平均
+        result = np.zeros_like(data)
+        result[0] = data[0]
+        for i in range(1, len(data)):
+            result[i] = alpha * data[i] + (1 - alpha) * result[i-1]
+        return result
+    
+    elif method == 'savitzky_golay':
+        # Savitzky-Golayフィルタ（より高品質だが遅い）
+        window = max(window, 5)  # 最小5
+        if window % 2 == 0:  # 奇数にする
+            window += 1
+        polyorder = min(3, window - 1)  # 多項式次数
+        return savgol_filter(data, window_length=window, polyorder=polyorder)
+    
+    else:
+        raise ValueError(f"Unknown smoothing method: {method}")
+
+
+def compute_statistics(dfs: List[pd.DataFrame], smooth_method: str = 'none', 
+                       smooth_window: int = 10, smooth_alpha: float = 0.1,
+                       smooth_sigma: float = 2.0) -> tuple:
     """複数seedのデータから平均と95%信頼区間を計算"""
     # 全seedのステップを統一
     min_length = min(len(df) for df in dfs)
     aligned_dfs = [df.iloc[:min_length].reset_index(drop=True) for df in dfs]
     
-    # 報酬を抽出
-    rewards = np.array([df['episode_reward'].values for df in aligned_dfs])
+    # 報酬を抽出してスムージング
+    rewards = np.array([
+        smooth_data(df['episode_reward'].values, smooth_method, 
+                   smooth_window, smooth_alpha, smooth_sigma)
+        for df in aligned_dfs
+    ])
     steps = aligned_dfs[0]['step'].values
     
     # 統計量を計算
@@ -74,7 +140,9 @@ def compute_statistics(dfs: List[pd.DataFrame]) -> tuple:
     return steps, means, stds, ci_lows, ci_highs
 
 
-def plot_learning_curves(data: Dict[str, List[pd.DataFrame]], output_path: Path):
+def plot_learning_curves(data: Dict[str, List[pd.DataFrame]], output_path: Path,
+                         smooth_method: str = 'none', smooth_window: int = 10,
+                         smooth_alpha: float = 0.1, smooth_sigma: float = 2.0):
     """学習曲線をプロット"""
     fig, ax = plt.subplots(figsize=(12, 7))
     
@@ -83,7 +151,9 @@ def plot_learning_curves(data: Dict[str, List[pd.DataFrame]], output_path: Path)
             print(f"Skipping {model}: no data")
             continue
         
-        steps, means, stds, ci_lows, ci_highs = compute_statistics(data[model])
+        steps, means, stds, ci_lows, ci_highs = compute_statistics(
+            data[model], smooth_method, smooth_window, smooth_alpha, smooth_sigma
+        )
         
         # メインライン
         ax.plot(steps, means, label=LABELS[model], color=COLORS[model], 
@@ -94,8 +164,13 @@ def plot_learning_curves(data: Dict[str, List[pd.DataFrame]], output_path: Path)
     
     ax.set_xlabel('Environment Steps', fontsize=13, fontweight='bold')
     ax.set_ylabel('Episode Return', fontsize=13, fontweight='bold')
-    ax.set_title('Learning Curves: Sample Efficiency Comparison', 
-                 fontsize=15, fontweight='bold', pad=20)
+    
+    # タイトルにスムージング情報を追加
+    title = 'Learning Curves: Sample Efficiency Comparison'
+    if smooth_method != 'none':
+        title += f' (Smoothing: {smooth_method})'
+    ax.set_title(title, fontsize=15, fontweight='bold', pad=20)
+    
     ax.legend(loc='lower right', fontsize=12, framealpha=0.9)
     ax.grid(True, alpha=0.3)
     
@@ -147,13 +222,49 @@ def print_summary(data: Dict[str, List[pd.DataFrame]]):
             print(f"  Convergence Step (95%): N/A")
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='Plot learning curves with optional smoothing')
+    
+    parser.add_argument('--logs-dir', type=str, default='logs_remote',
+                       help='Directory containing logs (default: logs_remote)')
+    parser.add_argument('--output', type=str, default='eval_curves.png',
+                       help='Output file path (default: eval_curves.png)')
+    parser.add_argument('--smooth', type=str, default='none',
+                       choices=['none', 'moving_average', 'gaussian', 'ema', 'savitzky_golay'],
+                       help='Smoothing method (default: none)')
+    parser.add_argument('--window', type=int, default=10,
+                       help='Window size for moving_average or savitzky_golay (default: 10)')
+    parser.add_argument('--alpha', type=float, default=0.1,
+                       help='Alpha for exponential moving average, 0-1 (default: 0.1, smaller = smoother)')
+    parser.add_argument('--sigma', type=float, default=2.0,
+                       help='Sigma for gaussian filter (default: 2.0)')
+    parser.add_argument('--num-seeds', type=int, default=5,
+                       help='Number of seeds to load (default: 5)')
+    
+    return parser.parse_args()
+
+
 def main():
-    logs_dir = Path("logs_remote")
-    output_path = Path("eval_curves.png")
+    args = parse_args()
+    
+    logs_dir = Path(args.logs_dir)
+    output_path = Path(args.output)
     
     if not logs_dir.exists():
         print(f"Error: {logs_dir} not found!")
         return
+    
+    print(f"Configuration:")
+    print(f"  Logs dir: {logs_dir}")
+    print(f"  Output: {output_path}")
+    print(f"  Smoothing: {args.smooth}")
+    if args.smooth == 'moving_average' or args.smooth == 'savitzky_golay':
+        print(f"  Window: {args.window}")
+    elif args.smooth == 'ema':
+        print(f"  Alpha: {args.alpha}")
+    elif args.smooth == 'gaussian':
+        print(f"  Sigma: {args.sigma}")
+    print()
     
     # データを読み込む
     data = {
@@ -163,8 +274,7 @@ def main():
         "o": []
     }
     
-    num_seeds = 5
-    for seed in range(num_seeds):
+    for seed in range(args.num_seeds):
         for model in ["baseline", "dr", "c", "o"]:
             df = load_eval_csv(model, seed, logs_dir)
             if df is not None:
@@ -176,7 +286,7 @@ def main():
         return
     
     # プロット
-    plot_learning_curves(data, output_path)
+    plot_learning_curves(data, output_path, args.smooth, args.window, args.alpha, args.sigma)
     
     # サマリー出力
     print_summary(data)
