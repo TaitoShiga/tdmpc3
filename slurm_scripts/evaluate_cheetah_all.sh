@@ -15,8 +15,8 @@ conda activate tdmpc2
 # ログディレクトリ作成
 mkdir -p logs
 
-# 作業ディレクトリへ移動
-cd ~/Research/tdmpc2-2/tdmpc2
+# 作業ディレクトリへ移動（正しいパス）
+cd ~/tdmpc3/tdmpc3
 
 # 4モデル × 5 seeds × 4 frictions の評価
 echo "Starting Cheetah evaluation..."
