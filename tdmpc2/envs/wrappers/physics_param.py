@@ -19,12 +19,13 @@ class PhysicsParamWrapper(gym.Wrapper):
 	- pendulum-swingup: body_mass[-1] (振り子の質量)
 	- ball_in_cup-catch: body_mass[2] (ボールの質量)
 	- hopper-stand: body_mass[複数] (Hopperの各部の質量)
+	- hopper-hop_backwards: thigh_length (大腿長)
 	- cheetah-run: geom_friction['ground'] (地面の摩擦係数)
 	- reacher-three_easy: 未実装
 	
 	Args:
 		env: 元の環境
-		param_type: 'mass', 'friction', 'damping' など
+		param_type: 'mass', 'friction', 'damping', 'length' など
 		param_indices: 取得する物理パラメータのインデックス (Noneの場合は自動検出)
 		normalization: 'standard' (平均=0, 標準偏差=1) または 'minmax' (範囲を[-1, 1]に)
 		default_value: デフォルトの物理パラメータ値（正規化の基準）
@@ -106,6 +107,19 @@ class PhysicsParamWrapper(gym.Wrapper):
 				self.default_value = np.array([1.0])
 				self.scale = np.array([1.0])
 		
+		elif self.param_type == 'length':
+			# Length parameters (geometric/structural)
+			if self.domain == 'hopper':
+				# Hopper: 大腿長 (thigh length)
+				# デフォルト=0.33, DRの範囲=(0.25, 0.45)
+				# 平均=0.35, 標準偏差≈0.058
+				self.default_value = np.array([0.33])
+				self.scale = np.array([0.1])  # (0.45-0.25)/2 = 0.1
+			else:
+				# 汎用的なデフォルト
+				self.default_value = np.array([1.0])
+				self.scale = np.array([0.5])
+		
 		else:
 			# 汎用的なデフォルト
 			self.default_value = np.array([1.0])
@@ -135,6 +149,13 @@ class PhysicsParamWrapper(gym.Wrapper):
 				return 3  # torso, thigh, leg
 			elif self.domain == 'reacher':
 				return 3  # arm0, arm1, finger
+			else:
+				return 1
+		
+		elif self.param_type == 'length':
+			# Length: 通常は1次元（単一リンク長）
+			if self.domain == 'hopper':
+				return 1  # thigh_length
 			else:
 				return 1
 		
@@ -193,6 +214,33 @@ class PhysicsParamWrapper(gym.Wrapper):
 				else:
 					# その他の環境: 最初のgeomの摩擦
 					return np.array([physics.model.geom_friction[0, 0]])
+			
+			elif self.param_type == 'length':
+				# 長さパラメータの取得
+				if self.domain == 'hopper':
+					# Hopper: thigh geomの長さを取得
+					# 方法1: タスククラスから直接取得（推奨）
+					try:
+						task = self.env.unwrapped.task
+						if hasattr(task, 'current_thigh_length'):
+							return np.array([task.current_thigh_length])
+					except:
+						pass
+					
+					# 方法2: geom fromto から計算（フォールバック）
+					try:
+						thigh_geom_id = physics.model.name2id('thigh', 'geom')
+						# MuJoCoでgeom fromtoを取得するのは難しいため、
+						# geom_pos と geom_size から推定
+						# ただしcapsuleの長さは fromto の差分なので直接取れない
+						# → XMLから読むか、タスククラスに記録しておく必要がある
+						
+						# とりあえずデフォルト値を返す（実際の実装ではタスククラスから取得）
+						return self.default_value.copy()
+					except:
+						return self.default_value.copy()
+				else:
+					return self.default_value.copy()
 			
 			elif self.param_type == 'damping':
 				# TODO: ダンピングパラメータの取得

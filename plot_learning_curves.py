@@ -1,21 +1,25 @@
 """
 学習曲線（サンプル効率）を可視化するスクリプト
 
-logs_remote/から各モデルのeval.csvを読み込み、
+logs_remote/から各モデルのeval.csvを読み込み（pendulum）、
+または artifacts/から読み込み（cheetah）、
 学習曲線をプロットして eval_curves.png に保存する。
 
 Usage:
-    # デフォルト（ノイズ除去なし）
+    # Pendulum（デフォルト）
     python plot_learning_curves.py
     
+    # Cheetah
+    python plot_learning_curves.py --task cheetah
+    
     # 移動平均でスムージング
-    python plot_learning_curves.py --smooth moving_average --window 10
+    python plot_learning_curves.py --task cheetah --smooth moving_average --window 10
     
     # ガウシアンフィルタ
-    python plot_learning_curves.py --smooth gaussian --window 5
+    python plot_learning_curves.py --task pendulum --smooth gaussian --window 5
     
     # 指数移動平均
-    python plot_learning_curves.py --smooth ema --alpha 0.1
+    python plot_learning_curves.py --task cheetah --smooth ema --alpha 0.1
 """
 
 import pandas as pd
@@ -49,25 +53,47 @@ COLORS = {
 }
 
 
-def load_eval_csv(model: str, seed: int, logs_dir: Path) -> pd.DataFrame:
-    """指定されたモデルとseedのeval.csvを読み込む"""
-    if model == "baseline":
-        csv_path = logs_dir / "pendulum-swingup" / str(seed) / "baseline" / "eval.csv"
-    elif model == "dr":
-        csv_path = logs_dir / "pendulum-swingup-randomized" / str(seed) / "dr" / "eval.csv"
-    elif model == "c":
-        csv_path = logs_dir / "pendulum-swingup-randomized" / str(seed) / "modelc" / "eval.csv"
-    elif model == "o":
-        csv_path = logs_dir / "pendulum-swingup-randomized" / str(seed) / "oracle" / "eval.csv"
+def load_eval_csv(model: str, seed: int, logs_dir: Path, task: str = "pendulum") -> pd.DataFrame:
+    """指定されたモデルとseedのeval.csvを読み込む
+    
+    Args:
+        model: "baseline", "dr", "c", or "o"
+        seed: seed番号
+        logs_dir: ログディレクトリ（pendulum用）
+        task: "pendulum" or "cheetah"
+    """
+    if task == "cheetah":
+        # artifactsディレクトリから読み込む
+        artifacts_dir = Path("artifacts")
+        if model == "baseline":
+            csv_path = artifacts_dir / "cheetah_baseline" / f"eval_seed{seed}.csv"
+        elif model == "dr":
+            csv_path = artifacts_dir / "cheetah_dr" / f"eval_seed{seed}.csv"
+        elif model == "c":
+            csv_path = artifacts_dir / "cheetah_c" / f"eval_seed{seed}.csv"
+        elif model == "o":
+            csv_path = artifacts_dir / "cheetah_oracle" / f"eval_seed{seed}.csv"
+        else:
+            raise ValueError(f"Unknown model: {model}")
     else:
-        raise ValueError(f"Unknown model: {model}")
+        # pendulum: logs_remoteから読み込む
+        if model == "baseline":
+            csv_path = logs_dir / "pendulum-swingup" / str(seed) / "baseline" / "eval.csv"
+        elif model == "dr":
+            csv_path = logs_dir / "pendulum-swingup-randomized" / str(seed) / "dr" / "eval.csv"
+        elif model == "c":
+            csv_path = logs_dir / "pendulum-swingup-randomized" / str(seed) / "modelc" / "eval.csv"
+        elif model == "o":
+            csv_path = logs_dir / "pendulum-swingup-randomized" / str(seed) / "oracle" / "eval.csv"
+        else:
+            raise ValueError(f"Unknown model: {model}")
     
     if not csv_path.exists():
         print(f"Warning: {csv_path} not found.")
         return None
     
     df = pd.read_csv(csv_path)
-    print(f"Loaded {csv_path.name} with {len(df)} rows (seed={seed})")
+    print(f"Loaded {csv_path.name} with {len(df)} rows (seed={seed}, task={task})")
     return df
 
 
@@ -142,7 +168,8 @@ def compute_statistics(dfs: List[pd.DataFrame], smooth_method: str = 'none',
 
 def plot_learning_curves(data: Dict[str, List[pd.DataFrame]], output_path: Path,
                          smooth_method: str = 'none', smooth_window: int = 10,
-                         smooth_alpha: float = 0.1, smooth_sigma: float = 2.0):
+                         smooth_alpha: float = 0.1, smooth_sigma: float = 2.0,
+                         task: str = "pendulum"):
     """学習曲線をプロット"""
     fig, ax = plt.subplots(figsize=(12, 7))
     
@@ -165,8 +192,9 @@ def plot_learning_curves(data: Dict[str, List[pd.DataFrame]], output_path: Path,
     ax.set_xlabel('Environment Steps', fontsize=13, fontweight='bold')
     ax.set_ylabel('Episode Return', fontsize=13, fontweight='bold')
     
-    # タイトルにスムージング情報を追加
-    title = 'Learning Curves: Sample Efficiency Comparison'
+    # タイトルにタスクとスムージング情報を追加
+    task_name = task.capitalize()
+    title = f'Learning Curves: Sample Efficiency Comparison ({task_name})'
     if smooth_method != 'none':
         title += f' (Smoothing: {smooth_method})'
     ax.set_title(title, fontsize=15, fontweight='bold', pad=20)
@@ -225,10 +253,13 @@ def print_summary(data: Dict[str, List[pd.DataFrame]]):
 def parse_args():
     parser = argparse.ArgumentParser(description='Plot learning curves with optional smoothing')
     
+    parser.add_argument('--task', type=str, default='pendulum',
+                       choices=['pendulum', 'cheetah'],
+                       help='Task to plot (default: pendulum)')
     parser.add_argument('--logs-dir', type=str, default='logs_remote',
-                       help='Directory containing logs (default: logs_remote)')
-    parser.add_argument('--output', type=str, default='eval_curves.png',
-                       help='Output file path (default: eval_curves.png)')
+                       help='Directory containing logs for pendulum (default: logs_remote)')
+    parser.add_argument('--output', type=str, default=None,
+                       help='Output file path (default: eval_curves_{task}.png)')
     parser.add_argument('--smooth', type=str, default='none',
                        choices=['none', 'moving_average', 'gaussian', 'ema', 'savitzky_golay'],
                        help='Smoothing method (default: none)')
@@ -247,15 +278,32 @@ def parse_args():
 def main():
     args = parse_args()
     
-    logs_dir = Path(args.logs_dir)
-    output_path = Path(args.output)
+    # 出力パスのデフォルト設定
+    if args.output is None:
+        output_path = Path(f"eval_curves_{args.task}.png")
+    else:
+        output_path = Path(args.output)
     
-    if not logs_dir.exists():
+    logs_dir = Path(args.logs_dir)
+    
+    # pendulumの場合のみlogs_dirの存在確認
+    if args.task == "pendulum" and not logs_dir.exists():
         print(f"Error: {logs_dir} not found!")
         return
     
+    # cheetahの場合はartifactsディレクトリの確認
+    if args.task == "cheetah":
+        artifacts_dir = Path("artifacts")
+        if not artifacts_dir.exists():
+            print(f"Error: {artifacts_dir} not found!")
+            return
+    
     print(f"Configuration:")
-    print(f"  Logs dir: {logs_dir}")
+    print(f"  Task: {args.task}")
+    if args.task == "pendulum":
+        print(f"  Logs dir: {logs_dir}")
+    else:
+        print(f"  Artifacts dir: artifacts/")
     print(f"  Output: {output_path}")
     print(f"  Smoothing: {args.smooth}")
     if args.smooth == 'moving_average' or args.smooth == 'savitzky_golay':
@@ -276,7 +324,7 @@ def main():
     
     for seed in range(args.num_seeds):
         for model in ["baseline", "dr", "c", "o"]:
-            df = load_eval_csv(model, seed, logs_dir)
+            df = load_eval_csv(model, seed, logs_dir, task=args.task)
             if df is not None:
                 data[model].append(df)
     
@@ -286,7 +334,7 @@ def main():
         return
     
     # プロット
-    plot_learning_curves(data, output_path, args.smooth, args.window, args.alpha, args.sigma)
+    plot_learning_curves(data, output_path, args.smooth, args.window, args.alpha, args.sigma, task=args.task)
     
     # サマリー出力
     print_summary(data)
