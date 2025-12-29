@@ -5,12 +5,16 @@ from dm_control.suite import common
 from dm_control.suite import walker
 from dm_control.utils import rewards
 from dm_control.utils import io as resources
+import numpy as np
 
 _TASKS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'tasks')
 
 _YOGA_STAND_HEIGHT = 1.0
 _YOGA_LIE_DOWN_HEIGHT = 0.08
 _YOGA_LEGS_UP_HEIGHT = 1.1
+
+# Default torso mass (estimated from walker.xml, will be verified)
+_DEFAULT_TORSO_MASS = 3.34
 
 
 def get_model_and_assets():
@@ -104,6 +108,124 @@ def backflip(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwa
   return control.Environment(
       physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
       **environment_kwargs)
+
+
+# ===== Domain Randomization版Walker Walk =====
+
+class WalkRandomized(walker.PlanarWalker):
+    """Domain Randomization版Walker Walk Task
+    
+    エピソードごとに胴体質量をランダム化:
+    - torso_mass: uniform(0.5, 2.5) × default
+    
+    荷物運搬・ペイロード変化シナリオを想定。
+    """
+    
+    def __init__(self, move_speed=walker._WALK_SPEED, random=None):
+        super().__init__(move_speed, random)
+        self._torso_mass_range = (0.5 * _DEFAULT_TORSO_MASS, 2.5 * _DEFAULT_TORSO_MASS)
+        self.current_torso_mass = _DEFAULT_TORSO_MASS  # デフォルト
+    
+    def initialize_episode(self, physics):
+        """エピソードごとに胴体質量をランダム化"""
+        # 新しい胴体質量をサンプリング
+        torso_mass = self.random.uniform(*self._torso_mass_range)
+        self.current_torso_mass = torso_mass
+        
+        # Physics内部のモデルを直接変更
+        torso_body_id = physics.model.name2id('torso', 'body')
+        physics.model.body_mass[torso_body_id] = torso_mass
+        
+        # 親クラスの初期化を呼ぶ
+        super().initialize_episode(physics)
+
+
+@walker.SUITE.add('custom')
+def walk_randomized(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Domain Randomization版Walker Walk
+    
+    エピソードごとに胴体質量をランダム化:
+    - torso_mass: uniform(0.5×, 2.5×) × default
+    
+    Model CがIn-Context Learningにより質量を学習するための環境。
+    """
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkRandomized(move_speed=walker._WALK_SPEED, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+# ===== 固定質量版Walker Walk（Zero-shot評価用） =====
+
+class WalkFixedMass(walker.PlanarWalker):
+    """固定胴体質量版Walker Walk Task"""
+    
+    def __init__(self, torso_mass, move_speed=walker._WALK_SPEED, random=None):
+        super().__init__(move_speed, random)
+        self.current_torso_mass = torso_mass
+    
+    def initialize_episode(self, physics):
+        """固定胴体質量を設定"""
+        torso_body_id = physics.model.name2id('torso', 'body')
+        physics.model.body_mass[torso_body_id] = self.current_torso_mass
+        super().initialize_episode(physics)
+
+
+@walker.SUITE.add('custom')
+def walk_torso_mass_05x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with torso_mass=0.5× default"""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkFixedMass(torso_mass=0.5 * _DEFAULT_TORSO_MASS, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_torso_mass_10x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with torso_mass=1.0× default (baseline)"""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkFixedMass(torso_mass=1.0 * _DEFAULT_TORSO_MASS, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_torso_mass_15x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with torso_mass=1.5× default"""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkFixedMass(torso_mass=1.5 * _DEFAULT_TORSO_MASS, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_torso_mass_20x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with torso_mass=2.0× default"""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkFixedMass(torso_mass=2.0 * _DEFAULT_TORSO_MASS, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_torso_mass_25x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with torso_mass=2.5× default"""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkFixedMass(torso_mass=2.5 * _DEFAULT_TORSO_MASS, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
 
 
 class BackwardsPlanarWalker(walker.PlanarWalker):

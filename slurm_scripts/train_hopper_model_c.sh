@@ -31,7 +31,7 @@ for seed in 0 1 2 3 4; do
         phys_param_normalization=standard \
         context_length=50 \
         gru_hidden_dim=256 \
-        steps=1000000 \
+        steps=500000 \
         seed=${seed} \
         save_video=false \
         enable_wandb=false \

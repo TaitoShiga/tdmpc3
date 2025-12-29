@@ -20,6 +20,7 @@ class PhysicsParamWrapper(gym.Wrapper):
 	- ball_in_cup-catch: body_mass[2] (ボールの質量)
 	- hopper-stand: body_mass[複数] (Hopperの各部の質量)
 	- hopper-hop_backwards: thigh_length (大腿長)
+	- walker-walk: body_mass['torso'] (胴体質量)
 	- cheetah-run: geom_friction['ground'] (地面の摩擦係数)
 	- reacher-three_easy: 未実装
 	
@@ -96,6 +97,12 @@ class PhysicsParamWrapper(gym.Wrapper):
 				self.default_value = np.array([3.92699082, 3.53429174, 2.71433605])
 				self.scale = np.array([3.92699082, 3.53429174, 2.71433605])
 			
+			elif self.domain == 'walker':
+				# Walker: 胴体質量
+				# デフォルト≈3.34, DRの範囲=(0.5×, 2.5×)
+				self.default_value = np.array([3.34])
+				self.scale = np.array([3.34])  # 質量を基準とした正規化
+			
 			elif self.domain == 'reacher':
 				# Reacher: 複数の質量パラメータ
 				# とりあえずarm0, arm1, fingerを使用
@@ -147,6 +154,8 @@ class PhysicsParamWrapper(gym.Wrapper):
 				return 1
 			elif self.domain == 'hopper':
 				return 3  # torso, thigh, leg
+			elif self.domain == 'walker':
+				return 1  # torso
 			elif self.domain == 'reacher':
 				return 3  # arm0, arm1, finger
 			else:
@@ -187,6 +196,20 @@ class PhysicsParamWrapper(gym.Wrapper):
 					# Hopper: 主要な3つの質量
 					# body_mass: [world, torso, thigh, leg, foot]
 					return physics.model.body_mass[1:4]  # torso, thigh, leg
+				
+				elif self.domain == 'walker':
+					# Walker: torsoの質量
+					# タスククラスから取得を試みる
+					try:
+						task = self.env.unwrapped.task
+						if hasattr(task, 'current_torso_mass'):
+							return np.array([task.current_torso_mass])
+					except:
+						pass
+					
+					# フォールバック: physicsから直接取得
+					torso_body_id = physics.model.name2id('torso', 'body')
+					return np.array([physics.model.body_mass[torso_body_id]])
 				
 				elif self.domain == 'reacher':
 					# Reacher: arm0, arm1, finger

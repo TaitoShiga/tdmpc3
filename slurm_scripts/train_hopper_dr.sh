@@ -25,7 +25,7 @@ for seed in 0 1 2 3 4; do
     python tdmpc2/train.py \
         task=hopper-hop_backwards_randomized \
         exp_name=hopper_dr \
-        steps=1000000 \
+        steps=500000 \
         seed=${seed} \
         save_video=false \
         enable_wandb=false \
