@@ -16,7 +16,7 @@ conda activate tdmpc2
 mkdir -p logs
 
 # 作業ディレクトリへ移動
-cd ~/Research/tdmpc2-2/tdmpc2
+cd ~/tdmpc3/tdmpc3
 
 # Baseline 訓練（5 seeds）
 # 固定長 thigh_length=0.33m

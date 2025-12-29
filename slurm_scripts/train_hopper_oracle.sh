@@ -16,7 +16,7 @@ conda activate tdmpc2
 mkdir -p logs
 
 # 作業ディレクトリへ移動
-cd ~/Research/tdmpc2-2/tdmpc2
+cd ~/tdmpc3/tdmpc3
 
 # Oracle 訓練（5 seeds）
 # ランダム長 + 真の thigh_length をプランナーに注入

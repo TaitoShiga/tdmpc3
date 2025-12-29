@@ -16,7 +16,7 @@ conda activate tdmpc2
 mkdir -p logs
 
 # 作業ディレクトリへ移動
-cd ~/Research/tdmpc2-2/tdmpc2
+cd ~/tdmpc3/tdmpc3
 
 # DR 訓練（5 seeds）
 # ランダム長 thigh_length ~ uniform(0.25, 0.45)
