@@ -35,7 +35,7 @@ for seed in 0 1 2 3 4; do
         seed=${seed} \
         save_video=false \
         enable_wandb=false \
-        compile=false
+        compile=false eval_freq=500
 done
 
 echo "Model C training completed!"
