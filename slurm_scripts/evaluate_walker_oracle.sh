@@ -37,6 +37,7 @@ for TASK in walk_torso_mass_05x walk_torso_mass_10x walk_torso_mass_15x walk_tor
         eval_episodes=30 \
         seed=0 \
         save_video=false \
+        compile=false \
         ${PHYS_PARAMS}
 done
 
@@ -49,8 +50,8 @@ for TASK in walk_torso_mass_03x walk_torso_mass_30x walk_torso_mass_35x; do
         eval_episodes=30 \
         seed=0 \
         save_video=false \
+        compile=false \
         ${PHYS_PARAMS}
 done
 
 echo "Oracle evaluation completed!"
-

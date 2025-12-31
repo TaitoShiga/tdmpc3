@@ -117,6 +117,7 @@ def evaluate_model(model_config, task_name, multiplier, mass_kg, dist_label):
         f'eval_episodes={EPISODES}',
         f'seed={SEED}',
         'save_video=false',
+        'compile=false',
     ]
     
     # Model C / Oracle の場合は物理パラメータ設定を追加

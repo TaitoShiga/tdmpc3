@@ -33,7 +33,8 @@ for TASK in walk_torso_mass_05x walk_torso_mass_10x walk_torso_mass_15x walk_tor
         checkpoint=${CHECKPOINT} \
         eval_episodes=30 \
         seed=0 \
-        save_video=false
+        save_video=false \
+        compile=false
 done
 
 # Out-of-Distribution
@@ -44,8 +45,8 @@ for TASK in walk_torso_mass_03x walk_torso_mass_30x walk_torso_mass_35x; do
         checkpoint=${CHECKPOINT} \
         eval_episodes=30 \
         seed=0 \
-        save_video=false
+        save_video=false \
+        compile=false
 done
 
 echo "Baseline evaluation completed!"
-
