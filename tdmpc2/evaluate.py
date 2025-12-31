@@ -14,6 +14,22 @@ from common.seed import set_seed
 from envs import make_env
 from tdmpc2 import TDMPC2
 
+# Oracle imports (conditional)
+try:
+	from tdmpc2_oracle import TDMPC2Oracle
+	from envs.wrappers.physics_param import wrap_with_physics_param
+	ORACLE_AVAILABLE = True
+except ImportError:
+	ORACLE_AVAILABLE = False
+
+# Model C imports (conditional)
+try:
+	from tdmpc2_model_c import TDMPC2ModelC
+	from envs.wrappers.physics_param import wrap_with_physics_param
+	MODEL_C_AVAILABLE = True
+except ImportError:
+	MODEL_C_AVAILABLE = False
+
 torch.backends.cudnn.benchmark = True
 
 
@@ -43,6 +59,24 @@ def evaluate(cfg: dict):
 	assert cfg.eval_episodes > 0, 'Must evaluate at least 1 episode.'
 	cfg = parse_cfg(cfg)
 	set_seed(cfg.seed)
+
+	use_oracle = getattr(cfg, 'use_oracle', False)
+	use_model_c = getattr(cfg, 'use_model_c', False)
+	if use_oracle and use_model_c:
+		raise ValueError('Cannot use both Oracle and Model C modes simultaneously.')
+
+	if use_oracle and not ORACLE_AVAILABLE:
+		raise ImportError(
+			'Oracle mode is enabled but Oracle components are not available. '
+			'Make sure all Oracle files are present in the tdmpc2 directory.'
+		)
+
+	if use_model_c and not MODEL_C_AVAILABLE:
+		raise ImportError(
+			'Model C mode is enabled but Model C components are not available. '
+			'Make sure all Model C files are present in the tdmpc2 directory.'
+		)
+
 	print(colored(f'Task: {cfg.task}', 'blue', attrs=['bold']))
 	print(colored(f'Model size: {cfg.get("model_size", "default")}', 'blue', attrs=['bold']))
 	print(colored(f'Checkpoint: {cfg.checkpoint}', 'blue', attrs=['bold']))
@@ -52,9 +86,16 @@ def evaluate(cfg: dict):
 
 	# Make environment
 	env = make_env(cfg)
+	if use_oracle or use_model_c:
+		env = wrap_with_physics_param(env, cfg)
 
 	# Load agent
-	agent = TDMPC2(cfg)
+	if use_model_c:
+		agent = TDMPC2ModelC(cfg)
+	elif use_oracle:
+		agent = TDMPC2Oracle(cfg)
+	else:
+		agent = TDMPC2(cfg)
 	assert os.path.exists(cfg.checkpoint), f'Checkpoint {cfg.checkpoint} not found! Must be a valid filepath.'
 	agent.load(cfg.checkpoint)
 	
@@ -77,7 +118,10 @@ def evaluate(cfg: dict):
 			if cfg.save_video:
 				frames = [env.render()]
 			while not done:
-				action = agent.act(obs, t0=t==0, task=task_idx)
+				if use_oracle:
+					action = agent.act(obs, env.current_c_phys, t0=t==0, task=task_idx)
+				else:
+					action = agent.act(obs, t0=t==0, task=task_idx)
 				obs, reward, done, info = env.step(action)
 				ep_reward += reward
 				t += 1
