@@ -63,6 +63,9 @@ class PhysicsParamWrapper(gym.Wrapper):
 		
 		# 現在の物理パラメータ（キャッシュ）
 		self._current_c_phys = None
+		self._base_actuator_gear = None
+		self._base_dof_damping = None
+		self._base_gravity = None
 	
 	def _set_default_params(self):
 		"""環境に応じたデフォルト値とスケールを設定"""
@@ -265,9 +268,43 @@ class PhysicsParamWrapper(gym.Wrapper):
 				else:
 					return self.default_value.copy()
 			
+			elif self.param_type == 'actuator':
+				if self._base_actuator_gear is None:
+					self._base_actuator_gear = physics.model.actuator_gear.copy()
+				base = self._base_actuator_gear
+				current = physics.model.actuator_gear
+				base_norm = np.mean(np.abs(base))
+				current_norm = np.mean(np.abs(current))
+				if base_norm <= 0:
+					return np.array([0.0])
+				return np.array([current_norm / base_norm])
+
+			elif self.param_type == 'gravity':
+				if self._base_gravity is None:
+					self._base_gravity = physics.model.opt.gravity.copy()
+				base_mag = abs(self._base_gravity[2])
+				current_mag = abs(physics.model.opt.gravity[2])
+				if base_mag <= 0:
+					return np.array([0.0])
+				return np.array([current_mag / base_mag])
+
 			elif self.param_type == 'damping':
 				# TODO: ダンピングパラメータの取得
-				raise NotImplementedError("Damping parameter extraction not implemented")
+				if self._base_dof_damping is None:
+					self._base_dof_damping = physics.model.dof_damping.copy()
+				base = self._base_dof_damping
+				current = physics.model.dof_damping
+				base_vals = base[base > 0]
+				current_vals = current[current > 0]
+				if base_vals.size == 0:
+					base_vals = base
+				if current_vals.size == 0:
+					current_vals = current
+				base_mean = float(np.mean(base_vals)) if base_vals.size else 0.0
+				current_mean = float(np.mean(current_vals)) if current_vals.size else 0.0
+				if base_mean <= 0:
+					return np.array([0.0])
+				return np.array([current_mean / base_mean])
 		
 		except Exception as e:
 			print(f"Warning: Failed to extract physics parameter: {e}")
