@@ -15,7 +15,7 @@ cd ~/tdmpc3/tdmpc3
 
 echo "Evaluating Walker Model C (seed0) on 8 mass conditions..."
 
-CHECKPOINT="logs/walker-walk_randomized/0/walker_model_c/models/final.pt"
+CHECKPOINT="$PWD/logs/walker-walk_randomized/0/walker_model_c/models/final.pt"
 
 if [ ! -f "$CHECKPOINT" ]; then
     echo "Error: Checkpoint not found: $CHECKPOINT"

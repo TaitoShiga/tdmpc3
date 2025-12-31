@@ -84,14 +84,15 @@ SEED = 0
 
 
 def find_checkpoint(model_config):
-    """seed0のチェックポイントを取得"""
+    """seed0のチェックポイントを取得（絶対パス）"""
     checkpoint_path = REPO_ROOT / model_config['checkpoint_path']
     
     if not checkpoint_path.exists():
         print(f"  Warning: Checkpoint not found: {checkpoint_path}")
         return None
     
-    return str(checkpoint_path)
+    # 絶対パスに変換
+    return str(checkpoint_path.resolve())
 
 
 def evaluate_model(model_config, task_name, multiplier, mass_kg, dist_label):
