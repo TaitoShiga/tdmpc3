@@ -228,6 +228,41 @@ def walk_torso_mass_25x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, envi
         **environment_kwargs)
 
 
+# ===== OOD評価用タスク =====
+
+@walker.SUITE.add('custom')
+def walk_torso_mass_03x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with torso_mass=0.3× default (OOD - light)"""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkFixedMass(torso_mass=0.3 * _DEFAULT_TORSO_MASS, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_torso_mass_30x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with torso_mass=3.0× default (OOD - heavy)"""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkFixedMass(torso_mass=3.0 * _DEFAULT_TORSO_MASS, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_torso_mass_35x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with torso_mass=3.5× default (OOD - extreme)"""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkFixedMass(torso_mass=3.5 * _DEFAULT_TORSO_MASS, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
 class BackwardsPlanarWalker(walker.PlanarWalker):
     """Backwards PlanarWalker task."""
     def __init__(self, move_speed, random=None):
