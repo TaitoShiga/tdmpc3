@@ -113,7 +113,7 @@ def evaluate_model(model_config, task_name, multiplier, mass_kg, dist_label):
         'tdmpc2/evaluate.py',
         f'task=walker-{task_name}',
         f'checkpoint={checkpoint}',
-        f'episodes={EPISODES}',
+        f'eval_episodes={EPISODES}',
         f'seed={SEED}',
         'save_video=false',
     ]

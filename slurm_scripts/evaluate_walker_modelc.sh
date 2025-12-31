@@ -34,7 +34,7 @@ for TASK in walk_torso_mass_05x walk_torso_mass_10x walk_torso_mass_15x walk_tor
     python tdmpc2/evaluate.py \
         task=walker-${TASK} \
         checkpoint=${CHECKPOINT} \
-        episodes=30 \
+        eval_episodes=30 \
         seed=0 \
         save_video=false \
         ${PHYS_PARAMS}
@@ -46,7 +46,7 @@ for TASK in walk_torso_mass_03x walk_torso_mass_30x walk_torso_mass_35x; do
     python tdmpc2/evaluate.py \
         task=walker-${TASK} \
         checkpoint=${CHECKPOINT} \
-        episodes=30 \
+        eval_episodes=30 \
         seed=0 \
         save_video=false \
         ${PHYS_PARAMS}
