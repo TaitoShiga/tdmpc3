@@ -15,10 +15,10 @@ cd ~/tdmpc3/tdmpc3
 
 echo "Evaluating Walker Oracle (seed0) on 8 mass conditions..."
 
-CHECKPOINT=$(find logs/walker_oracle/seed0* -name "checkpoint.pt" | head -1)
+CHECKPOINT="logs/walker-walk_randomized/0/walker_oracle/models/final.pt"
 
-if [ -z "$CHECKPOINT" ]; then
-    echo "Error: Checkpoint not found for walker_oracle/seed0"
+if [ ! -f "$CHECKPOINT" ]; then
+    echo "Error: Checkpoint not found: $CHECKPOINT"
     exit 1
 fi
 

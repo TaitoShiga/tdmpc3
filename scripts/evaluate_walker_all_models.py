@@ -21,7 +21,6 @@ Out-of-Distribution (訓練範囲外):
 import subprocess
 import sys
 import os
-import glob
 from pathlib import Path
 from datetime import datetime
 
@@ -46,17 +45,17 @@ MODELS = [
     {
         'name': 'Baseline',
         'exp_name': 'walker_baseline',
-        'checkpoint_pattern': 'logs/walker_baseline/seed0*/checkpoint.pt',
+        'checkpoint_path': 'logs/walker-walk/0/walker_baseline/models/final.pt',
     },
     {
         'name': 'DR',
         'exp_name': 'walker_dr',
-        'checkpoint_pattern': 'logs/walker_dr/seed0*/checkpoint.pt',
+        'checkpoint_path': 'logs/walker-walk_randomized/0/walker_dr/models/final.pt',
     },
     {
         'name': 'Model C',
         'exp_name': 'walker_model_c',
-        'checkpoint_pattern': 'logs/walker_model_c/seed0*/checkpoint.pt',
+        'checkpoint_path': 'logs/walker-walk_randomized/0/walker_model_c/models/final.pt',
         'use_model_c': True,
         'c_phys_config': {
             'c_phys_dim': 1,
@@ -69,7 +68,7 @@ MODELS = [
     {
         'name': 'Oracle',
         'exp_name': 'walker_oracle',
-        'checkpoint_pattern': 'logs/walker_oracle/seed0*/checkpoint.pt',
+        'checkpoint_path': 'logs/walker-walk_randomized/0/walker_oracle/models/final.pt',
         'use_oracle': True,
         'c_phys_config': {
             'c_phys_dim': 1,
@@ -85,16 +84,14 @@ SEED = 0
 
 
 def find_checkpoint(model_config):
-    """seed0のチェックポイントを検索"""
-    pattern = model_config['checkpoint_pattern']
-    checkpoints = glob.glob(str(REPO_ROOT / pattern))
+    """seed0のチェックポイントを取得"""
+    checkpoint_path = REPO_ROOT / model_config['checkpoint_path']
     
-    if not checkpoints:
-        print(f"  Warning: No checkpoint found for pattern: {pattern}")
+    if not checkpoint_path.exists():
+        print(f"  Warning: Checkpoint not found: {checkpoint_path}")
         return None
     
-    # 最初に見つかったものを返す
-    return checkpoints[0]
+    return str(checkpoint_path)
 
 
 def evaluate_model(model_config, task_name, multiplier, mass_kg, dist_label):
