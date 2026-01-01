@@ -332,6 +332,28 @@ class WalkGravityScaled(walker.PlanarWalker):
 
 
 @walker.SUITE.add('custom')
+def walk_friction_02x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with floor friction scaled to 0.2x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkFrictionScaled(friction_scale=0.2, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_friction_04x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with floor friction scaled to 0.4x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkFrictionScaled(friction_scale=0.4, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
 def walk_friction_05x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
     """Walker Walk with floor friction scaled to 0.5x."""
     physics = walker.Physics.from_xml_string(*get_model_and_assets())
@@ -343,10 +365,43 @@ def walk_friction_05x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, enviro
 
 
 @walker.SUITE.add('custom')
+def walk_friction_06x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with floor friction scaled to 0.6x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkFrictionScaled(friction_scale=0.6, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_friction_08x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with floor friction scaled to 0.8x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkFrictionScaled(friction_scale=0.8, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
 def walk_friction_10x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
     """Walker Walk with floor friction scaled to 1.0x."""
     physics = walker.Physics.from_xml_string(*get_model_and_assets())
     task = WalkFrictionScaled(friction_scale=1.0, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_friction_12x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with floor friction scaled to 1.2x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkFrictionScaled(friction_scale=1.2, random=random)
     environment_kwargs = environment_kwargs or {}
     return control.Environment(
         physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
@@ -376,10 +431,43 @@ def walk_friction_20x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, enviro
 
 
 @walker.SUITE.add('custom')
+def walk_actuator_04x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with actuator gear scaled to 0.4x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkActuatorScaled(gear_scale=0.4, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_actuator_05x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with actuator gear scaled to 0.5x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkActuatorScaled(gear_scale=0.5, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
 def walk_actuator_06x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
     """Walker Walk with actuator gear scaled to 0.6x."""
     physics = walker.Physics.from_xml_string(*get_model_and_assets())
     task = WalkActuatorScaled(gear_scale=0.6, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_actuator_07x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with actuator gear scaled to 0.7x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkActuatorScaled(gear_scale=0.7, random=random)
     environment_kwargs = environment_kwargs or {}
     return control.Environment(
         physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
@@ -398,10 +486,32 @@ def walk_actuator_08x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, enviro
 
 
 @walker.SUITE.add('custom')
+def walk_actuator_09x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with actuator gear scaled to 0.9x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkActuatorScaled(gear_scale=0.9, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
 def walk_actuator_10x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
     """Walker Walk with actuator gear scaled to 1.0x."""
     physics = walker.Physics.from_xml_string(*get_model_and_assets())
     task = WalkActuatorScaled(gear_scale=1.0, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_actuator_11x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with actuator gear scaled to 1.1x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkActuatorScaled(gear_scale=1.1, random=random)
     environment_kwargs = environment_kwargs or {}
     return control.Environment(
         physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
@@ -420,10 +530,32 @@ def walk_actuator_12x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, enviro
 
 
 @walker.SUITE.add('custom')
+def walk_actuator_13x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with actuator gear scaled to 1.3x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkActuatorScaled(gear_scale=1.3, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
 def walk_actuator_14x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
     """Walker Walk with actuator gear scaled to 1.4x."""
     physics = walker.Physics.from_xml_string(*get_model_and_assets())
     task = WalkActuatorScaled(gear_scale=1.4, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_damping_025x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with joint damping scaled to 0.25x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkDampingScaled(damping_scale=0.25, random=random)
     environment_kwargs = environment_kwargs or {}
     return control.Environment(
         physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
@@ -442,6 +574,17 @@ def walk_damping_05x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environ
 
 
 @walker.SUITE.add('custom')
+def walk_damping_075x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with joint damping scaled to 0.75x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkDampingScaled(damping_scale=0.75, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
 def walk_damping_10x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
     """Walker Walk with joint damping scaled to 1.0x."""
     physics = walker.Physics.from_xml_string(*get_model_and_assets())
@@ -453,10 +596,43 @@ def walk_damping_10x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environ
 
 
 @walker.SUITE.add('custom')
+def walk_damping_15x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with joint damping scaled to 1.5x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkDampingScaled(damping_scale=1.5, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
 def walk_damping_20x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
     """Walker Walk with joint damping scaled to 2.0x."""
     physics = walker.Physics.from_xml_string(*get_model_and_assets())
     task = WalkDampingScaled(damping_scale=2.0, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_damping_30x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with joint damping scaled to 3.0x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkDampingScaled(damping_scale=3.0, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_gravity_06x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with gravity scaled to 0.6x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkGravityScaled(gravity_scale=0.6, random=random)
     environment_kwargs = environment_kwargs or {}
     return control.Environment(
         physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
@@ -490,6 +666,17 @@ def walk_gravity_12x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environ
     """Walker Walk with gravity scaled to 1.2x."""
     physics = walker.Physics.from_xml_string(*get_model_and_assets())
     task = WalkGravityScaled(gravity_scale=1.2, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+@walker.SUITE.add('custom')
+def walk_gravity_14x(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with gravity scaled to 1.4x."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkGravityScaled(gravity_scale=1.4, random=random)
     environment_kwargs = environment_kwargs or {}
     return control.Environment(
         physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
