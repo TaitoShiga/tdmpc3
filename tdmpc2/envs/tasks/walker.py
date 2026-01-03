@@ -157,6 +157,41 @@ def walk_randomized(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environm
         **environment_kwargs)
 
 
+# ===== Domain Randomization (Actuator) =====
+
+_DEFAULT_ACTUATOR_SCALE = 1.0
+_ACTUATOR_SCALE_RANGE = (0.4 * _DEFAULT_ACTUATOR_SCALE, 1.4 * _DEFAULT_ACTUATOR_SCALE)
+
+
+class WalkActuatorRandomized(walker.PlanarWalker):
+    """Domain Randomization for actuator gear strengths."""
+
+    def __init__(self, move_speed=walker._WALK_SPEED, random=None):
+        super().__init__(move_speed, random)
+        self._actuator_scale_range = _ACTUATOR_SCALE_RANGE
+        self._base_gear = None
+        self.current_actuator_scale = _DEFAULT_ACTUATOR_SCALE
+
+    def initialize_episode(self, physics):
+        scale = self.random.uniform(*self._actuator_scale_range)
+        self.current_actuator_scale = scale
+        if self._base_gear is None:
+            self._base_gear = physics.model.actuator_gear.copy()
+        physics.model.actuator_gear[:] = self._base_gear * scale
+        super().initialize_episode(physics)
+
+
+@walker.SUITE.add('custom')
+def walk_actuator_randomized(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with randomized actuator gear scaling per episode."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    task = WalkActuatorRandomized(move_speed=walker._WALK_SPEED, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
 # ===== 固定質量版Walker Walk（Zero-shot評価用） =====
 
 class WalkFixedMass(walker.PlanarWalker):

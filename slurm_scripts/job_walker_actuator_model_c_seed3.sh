@@ -1,0 +1,33 @@
+#!/bin/bash
+#SBATCH -J walker-act-modelc-seed3
+#SBATCH -n 1
+#SBATCH --gres=gpu:1
+#SBATCH -c 8
+#SBATCH --mem=32G
+#SBATCH -t 12:00:00
+#SBATCH -o logs/%x-%j.out
+#SBATCH -e logs/%x-%j.err
+
+eval "$(conda shell.bash hook)"
+conda activate tdmpc2
+mkdir -p logs
+cd ~/tdmpc3/tdmpc3
+
+echo "Training Actuator Model C seed=3..."
+python tdmpc2/train.py \
+    task=walker-walk_actuator_randomized \
+    exp_name=walker_actuator_model_c \
+    steps=100000 \
+    eval_freq=500 \
+    seed=3 \
+    save_video=false \
+    enable_wandb=false \
+    compile=false \
+    use_model_c=true \
+    c_phys_dim=1 \
+    phys_param_type=actuator \
+    phys_param_normalization=standard \
+    context_length=50 \
+    gru_hidden_dim=256
+
+echo "Actuator Model C seed=3 completed!"

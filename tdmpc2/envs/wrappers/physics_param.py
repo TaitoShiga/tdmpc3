@@ -269,6 +269,12 @@ class PhysicsParamWrapper(gym.Wrapper):
 					return self.default_value.copy()
 			
 			elif self.param_type == 'actuator':
+				try:
+					task = self.env.unwrapped.task
+					if hasattr(task, 'current_actuator_scale'):
+						return np.array([task.current_actuator_scale])
+				except:
+					pass
 				if self._base_actuator_gear is None:
 					self._base_actuator_gear = physics.model.actuator_gear.copy()
 				base = self._base_actuator_gear
@@ -280,6 +286,12 @@ class PhysicsParamWrapper(gym.Wrapper):
 				return np.array([current_norm / base_norm])
 
 			elif self.param_type == 'gravity':
+				try:
+					task = self.env.unwrapped.task
+					if hasattr(task, 'current_gravity_scale'):
+						return np.array([task.current_gravity_scale])
+				except:
+					pass
 				if self._base_gravity is None:
 					self._base_gravity = physics.model.opt.gravity.copy()
 				base_mag = abs(self._base_gravity[2])
@@ -290,6 +302,12 @@ class PhysicsParamWrapper(gym.Wrapper):
 
 			elif self.param_type == 'damping':
 				# TODO: ダンピングパラメータの取得
+				try:
+					task = self.env.unwrapped.task
+					if hasattr(task, 'current_damping_scale'):
+						return np.array([task.current_damping_scale])
+				except:
+					pass
 				if self._base_dof_damping is None:
 					self._base_dof_damping = physics.model.dof_damping.copy()
 				base = self._base_dof_damping
