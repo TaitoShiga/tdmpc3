@@ -8,18 +8,15 @@
 #SBATCH -o logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 
-# === conda 初期化 ===
-# Option 1: bashrcから読み込む
-source ~/.bashrc
-
-# Option 2: conda hookを使う（上記で失敗する場合）
-# eval "$(conda shell.bash hook)"
-
-# Option 3: module systemを使う（クラスタ環境によっては）
-# module load anaconda3
-
+# === conda 初期化（これが重要）===
+eval "$(conda shell.bash hook)"
 conda activate tdmpc2
+
+# ログディレクトリ作成
 mkdir -p logs results
+
+# 作業ディレクトリへ移動
+cd ~/tdmpc3/tdmpc3
 
 # デフォルト設定（利用可能なseedのみ使用）
 # Baseline: seed0, DR: seed3, Model C: seed0, Oracle: seed0

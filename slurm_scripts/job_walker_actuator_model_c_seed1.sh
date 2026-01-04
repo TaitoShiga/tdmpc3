@@ -8,9 +8,14 @@
 #SBATCH -o logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 
+# === conda 初期化（これが重要）===
 eval "$(conda shell.bash hook)"
 conda activate tdmpc2
+
+# ログディレクトリ作成
 mkdir -p logs
+
+# 作業ディレクトリへ移動
 cd ~/tdmpc3/tdmpc3
 
 echo "Training Actuator Model C seed=1..."
