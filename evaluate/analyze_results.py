@@ -12,6 +12,7 @@ results.csv を読み込み、以下を実行：
     python evaluate/analyze_results.py
 """
 
+import argparse
 import sys
 from pathlib import Path
 from typing import List, Tuple
@@ -27,6 +28,35 @@ np.random.seed(0)
 
 # ブートストラップの回数
 BOOTSTRAP_ITERATIONS = 10000
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Analyze evaluation results CSV.")
+    parser.add_argument(
+        "--input",
+        type=Path,
+        default=Path(__file__).resolve().parents[1] / "results.csv",
+        help="Input results CSV (default: results.csv).",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path(__file__).resolve().parents[1],
+        help="Directory for output figures (default: repo root).",
+    )
+    parser.add_argument(
+        "--output-prefix",
+        type=str,
+        default="",
+        help="Optional prefix for output figures (default: '').",
+    )
+    parser.add_argument(
+        "--param-label",
+        type=str,
+        default="Param (mass multiplier)",
+        help="X-axis label for param plots.",
+    )
+    return parser.parse_args()
 
 
 def compute_iqm(values: np.ndarray) -> float:
@@ -339,7 +369,7 @@ def pairwise_comparison(df_iqm: pd.DataFrame) -> pd.DataFrame:
     return df_diff
 
 
-def plot_per_param(df_agg: pd.DataFrame, output_path: Path):
+def plot_per_param(df_agg: pd.DataFrame, output_path: Path, param_label: str):
     """
     param ごとの性能比較グラフを生成
     
@@ -373,7 +403,7 @@ def plot_per_param(df_agg: pd.DataFrame, output_path: Path):
             linewidth=2, markersize=8, color=colors[model]
         )
     
-    ax.set_xlabel("Param (mass multiplier)", fontsize=12)
+    ax.set_xlabel(param_label, fontsize=12)
     ax.set_ylabel("Mean IQM Return", fontsize=12)
     ax.set_title("Performance vs param (IQM with 95% CI)", fontsize=14, fontweight='bold')
     ax.legend(fontsize=11)
@@ -440,9 +470,12 @@ def plot_overall(df_overall: pd.DataFrame, output_path: Path):
 
 
 def main():
-    # results.csv のパス
-    csv_path = Path(__file__).resolve().parents[1] / "results.csv"
-    
+    args = parse_args()
+    csv_path = args.input
+    output_dir = args.output_dir
+    prefix = args.output_prefix
+    prefix = f"{prefix}_" if prefix else ""
+
     if not csv_path.exists():
         print(f"Error: {csv_path} が見つかりません")
         print("まず evaluate/evaluate_all_models.py を実行してください")
@@ -464,9 +497,9 @@ def main():
     df_diff = pairwise_comparison(df_iqm)
     
     # 6. 可視化
-    output_dir = Path(__file__).resolve().parents[1]
-    plot_per_param(df_agg, output_dir / "fig_per_param.png")
-    plot_overall(df_overall, output_dir / "fig_overall.png")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    plot_per_param(df_agg, output_dir / f"{prefix}fig_per_param.png", args.param_label)
+    plot_overall(df_overall, output_dir / f"{prefix}fig_overall.png")
     
     # 7. まとめを表示
     print("="*70)
@@ -477,8 +510,8 @@ def main():
     print(f"✓ ペアワイズ比較: {len(df_diff)} ペア")
     print()
     print("生成されたファイル:")
-    print(f"  - {output_dir / 'fig_per_param.png'}")
-    print(f"  - {output_dir / 'fig_overall.png'}")
+    print(f"  - {output_dir / f'{prefix}fig_per_param.png'}")
+    print(f"  - {output_dir / f'{prefix}fig_overall.png'}")
     print()
     
     # 有意な差分を表示
@@ -494,4 +527,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

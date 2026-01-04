@@ -52,6 +52,12 @@ COLORS = {
     "o": "#d62728"
 }
 
+TASK_TITLES = {
+    "pendulum": "Pendulum",
+    "cheetah": "Cheetah",
+    "walker_actuator": "Walker Actuator",
+}
+
 
 def load_eval_csv(model: str, seed: int, logs_dir: Path, task: str = "pendulum") -> pd.DataFrame:
     """指定されたモデルとseedのeval.csvを読み込む
@@ -60,7 +66,7 @@ def load_eval_csv(model: str, seed: int, logs_dir: Path, task: str = "pendulum")
         model: "baseline", "dr", "c", or "o"
         seed: seed番号
         logs_dir: ログディレクトリ（pendulum用）
-        task: "pendulum" or "cheetah"
+        task: "pendulum", "cheetah", or "walker_actuator"
     """
     if task == "cheetah":
         # artifactsディレクトリから読み込む
@@ -73,6 +79,17 @@ def load_eval_csv(model: str, seed: int, logs_dir: Path, task: str = "pendulum")
             csv_path = artifacts_dir / "cheetah_c" / f"eval_seed{seed}.csv"
         elif model == "o":
             csv_path = artifacts_dir / "cheetah_oracle" / f"eval_seed{seed}.csv"
+        else:
+            raise ValueError(f"Unknown model: {model}")
+    elif task == "walker_actuator":
+        if model == "baseline":
+            csv_path = logs_dir / "walker-walk" / str(seed) / "walker_baseline" / "eval.csv"
+        elif model == "dr":
+            csv_path = logs_dir / "walker-walk_actuator_randomized" / str(seed) / "walker_actuator_dr" / "eval.csv"
+        elif model == "c":
+            csv_path = logs_dir / "walker-walk_actuator_randomized" / str(seed) / "walker_actuator_model_c" / "eval.csv"
+        elif model == "o":
+            csv_path = logs_dir / "walker-walk_actuator_randomized" / str(seed) / "walker_actuator_oracle" / "eval.csv"
         else:
             raise ValueError(f"Unknown model: {model}")
     else:
@@ -193,8 +210,8 @@ def plot_learning_curves(data: Dict[str, List[pd.DataFrame]], output_path: Path,
     ax.set_ylabel('Episode Return', fontsize=13, fontweight='bold')
     
     # タイトルにタスクとスムージング情報を追加
-    task_name = task.capitalize()
-    title = f'Learning Curves: Sample Efficiency Comparison ({task_name})'
+    task_title = TASK_TITLES.get(task, task)
+    title = f'Learning Curves: Sample Efficiency Comparison ({task_title})'
     if smooth_method != 'none':
         title += f' (Smoothing: {smooth_method})'
     ax.set_title(title, fontsize=15, fontweight='bold', pad=20)
@@ -254,10 +271,10 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Plot learning curves with optional smoothing')
     
     parser.add_argument('--task', type=str, default='pendulum',
-                       choices=['pendulum', 'cheetah'],
+                       choices=['pendulum', 'cheetah', 'walker_actuator'],
                        help='Task to plot (default: pendulum)')
-    parser.add_argument('--logs-dir', type=str, default='logs_remote',
-                       help='Directory containing logs for pendulum (default: logs_remote)')
+    parser.add_argument('--logs-dir', type=str, default=None,
+                       help='Directory containing logs (default: logs_remote for pendulum, logs for walker)')
     parser.add_argument('--output', type=str, default=None,
                        help='Output file path (default: eval_curves_{task}.png)')
     parser.add_argument('--smooth', type=str, default='none',
@@ -284,10 +301,16 @@ def main():
     else:
         output_path = Path(args.output)
     
-    logs_dir = Path(args.logs_dir)
+    if args.logs_dir is None:
+        if args.task == "pendulum":
+            logs_dir = Path("logs_remote")
+        else:
+            logs_dir = Path("logs")
+    else:
+        logs_dir = Path(args.logs_dir)
     
-    # pendulumの場合のみlogs_dirの存在確認
-    if args.task == "pendulum" and not logs_dir.exists():
+    # pendulum/walkerの場合のみlogs_dirの存在確認
+    if args.task in {"pendulum", "walker_actuator"} and not logs_dir.exists():
         print(f"Error: {logs_dir} not found!")
         return
     
@@ -300,7 +323,7 @@ def main():
     
     print(f"Configuration:")
     print(f"  Task: {args.task}")
-    if args.task == "pendulum":
+    if args.task in {"pendulum", "walker_actuator"}:
         print(f"  Logs dir: {logs_dir}")
     else:
         print(f"  Artifacts dir: artifacts/")
