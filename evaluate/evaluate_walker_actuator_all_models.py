@@ -44,7 +44,12 @@ from tdmpc2 import TDMPC2
 from tdmpc2_oracle import TDMPC2Oracle
 from tdmpc2_model_c import TDMPC2ModelC
 
-DEFAULT_SCALES = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4]
+# 訓練範囲: 0.4x ~ 1.4x
+# In-Distribution: 0.4x ~ 1.4x (11点)
+# Out-of-Distribution: 0.2x, 0.3x (軽すぎ), 1.5x, 1.6x, 1.7x (重すぎ)
+DEFAULT_SCALES_IN_DIST = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4]
+DEFAULT_SCALES_OOD = [0.2, 0.3, 1.5, 1.6, 1.7]
+DEFAULT_SCALES = DEFAULT_SCALES_IN_DIST + DEFAULT_SCALES_OOD
 
 MODEL_CONFIGS = {
     "baseline": {
@@ -52,24 +57,28 @@ MODEL_CONFIGS = {
         "exp_names": ["walker_baseline"],
         "use_oracle": False,
         "use_model_c": False,
+        "available_seeds": [0],  # seed0のみ
     },
     "dr": {
         "train_task": "walker-walk_actuator_randomized",
         "exp_names": ["walker_actuator_dr"],
         "use_oracle": False,
         "use_model_c": False,
+        "available_seeds": [3],  # seed3のみ
     },
     "c": {
         "train_task": "walker-walk_actuator_randomized",
         "exp_names": ["walker_actuator_model_c", "walker_actuator_modelc"],
         "use_oracle": False,
         "use_model_c": True,
+        "available_seeds": [0],  # seed0のみ
     },
     "o": {
         "train_task": "walker-walk_actuator_randomized",
         "exp_names": ["walker_actuator_oracle"],
         "use_oracle": True,
         "use_model_c": False,
+        "available_seeds": [0],  # seed0のみ
     },
 }
 
@@ -80,8 +89,8 @@ def parse_args():
         "--seeds",
         type=int,
         nargs="+",
-        default=[0, 1, 2, 3, 4],
-        help="Seeds to evaluate (default: 0 1 2 3 4).",
+        default=None,
+        help="Seeds to evaluate (default: use available_seeds per model).",
     )
     parser.add_argument(
         "--episodes",
@@ -94,7 +103,18 @@ def parse_args():
         type=float,
         nargs="+",
         default=DEFAULT_SCALES,
-        help="Actuator scales to test (default: 0.4..1.4).",
+        help="Actuator scales to test (default: 0.2..1.7 including OOD).",
+    )
+    parser.add_argument(
+        "--include-ood",
+        action="store_true",
+        default=True,
+        help="Include OOD scales (0.2, 0.3, 1.5, 1.6, 1.7) in evaluation.",
+    )
+    parser.add_argument(
+        "--in-dist-only",
+        action="store_true",
+        help="Evaluate only in-distribution scales (0.4-1.4).",
     )
     parser.add_argument(
         "--output",
@@ -272,26 +292,58 @@ def evaluate_model(model_type: str, seed: int, scale: float, episodes: int, args
 def main():
     args = parse_args()
 
+    # OOD範囲の設定
+    if args.in_dist_only:
+        args.actuator_scales = [s for s in args.actuator_scales if s in DEFAULT_SCALES_IN_DIST]
+    elif args.include_ood and args.actuator_scales == DEFAULT_SCALES:
+        # デフォルト: In-Dist + OODの両方
+        pass
+    
     print("=" * 70)
     print("Walker actuator evaluation (baseline, dr, c, o)")
     print("=" * 70)
-    print(f"Seeds: {args.seeds}")
     print(f"Episodes per (model, seed, scale): {args.episodes}")
     print(f"Actuator scales: {args.actuator_scales}")
+    print(f"  - In-Distribution (0.4-1.4): {[s for s in args.actuator_scales if 0.4 <= s <= 1.4]}")
+    print(f"  - Out-of-Distribution: {[s for s in args.actuator_scales if s < 0.4 or s > 1.4]}")
     print(f"Logs dir: {args.logs_dir}")
     print(f"Output: {args.output}")
+    print()
+    print("Available seeds per model:")
+    for model in ["baseline", "dr", "c", "o"]:
+        avail_seeds = MODEL_CONFIGS[model]["available_seeds"]
+        print(f"  - {model}: {avail_seeds}")
     print()
 
     all_results = []
 
     models = ["baseline", "dr", "c", "o"]
-    total_evals = len(models) * len(args.seeds) * len(args.actuator_scales)
+    
+    # 総評価数を計算（モデルごとに利用可能なseedを使用）
+    total_evals = sum(
+        len(MODEL_CONFIGS[model]["available_seeds"]) * len(args.actuator_scales)
+        for model in models
+    )
 
     with tqdm(total=total_evals, desc="Evaluating") as pbar:
         for model in models:
-            for seed in args.seeds:
+            # モデルごとに利用可能なseedを使用
+            available_seeds = MODEL_CONFIGS[model]["available_seeds"]
+            seeds_to_eval = args.seeds if args.seeds is not None else available_seeds
+            
+            # 利用可能なseedのみを評価
+            actual_seeds = [s for s in seeds_to_eval if s in available_seeds]
+            
+            if not actual_seeds:
+                print(f"Warning: No valid seeds for {model}. Skipping.")
+                pbar.update(len(args.actuator_scales))
+                continue
+            
+            for seed in actual_seeds:
                 for scale in args.actuator_scales:
-                    desc = f"{model} seed={seed} scale={scale:.1f}"
+                    # OOD判定
+                    ood_label = " (OOD)" if (scale < 0.4 or scale > 1.4) else ""
+                    desc = f"{model} seed={seed} scale={scale:.1f}{ood_label}"
                     pbar.set_description(desc)
 
                     try:

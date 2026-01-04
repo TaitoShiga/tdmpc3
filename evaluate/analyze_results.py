@@ -56,6 +56,18 @@ def parse_args():
         default="Param (mass multiplier)",
         help="X-axis label for param plots.",
     )
+    parser.add_argument(
+        "--train-min",
+        type=float,
+        default=None,
+        help="Training range minimum (for OOD shading). Default: None (no shading).",
+    )
+    parser.add_argument(
+        "--train-max",
+        type=float,
+        default=None,
+        help="Training range maximum (for OOD shading). Default: None (no shading).",
+    )
     return parser.parse_args()
 
 
@@ -369,13 +381,17 @@ def pairwise_comparison(df_iqm: pd.DataFrame) -> pd.DataFrame:
     return df_diff
 
 
-def plot_per_param(df_agg: pd.DataFrame, output_path: Path, param_label: str):
+def plot_per_param(df_agg: pd.DataFrame, output_path: Path, param_label: str, 
+                   train_min: float = None, train_max: float = None):
     """
-    param ごとの性能比較グラフを生成
+    param ごとの性能比較グラフを生成（OOD範囲を網掛け表示）
     
     Args:
         df_agg: 集約結果
         output_path: 保存先
+        param_label: X軸ラベル
+        train_min: 学習範囲の最小値（Noneの場合は網掛けなし）
+        train_max: 学習範囲の最大値（Noneの場合は網掛けなし）
     """
     print("="*70)
     print("可視化: param ごとの性能比較")
@@ -386,6 +402,19 @@ def plot_per_param(df_agg: pd.DataFrame, output_path: Path, param_label: str):
     labels = {"baseline": "Baseline", "dr": "DR", "c": "Model C", "o": "Oracle"}
     
     fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # OOD範囲を網掛け表示
+    if train_min is not None and train_max is not None:
+        all_params = df_agg["param"].unique()
+        param_min, param_max = all_params.min(), all_params.max()
+        
+        # 左側のOOD範囲（軽すぎ）
+        if param_min < train_min:
+            ax.axvspan(param_min - 0.05, train_min, alpha=0.15, color='gray', label='OOD')
+        
+        # 右側のOOD範囲（重すぎ）
+        if param_max > train_max:
+            ax.axvspan(train_max, param_max + 0.05, alpha=0.15, color='gray')
     
     for model in models:
         df_model = df_agg[df_agg["model"] == model].sort_values("param")
@@ -498,7 +527,8 @@ def main():
     
     # 6. 可視化
     output_dir.mkdir(parents=True, exist_ok=True)
-    plot_per_param(df_agg, output_dir / f"{prefix}fig_per_param.png", args.param_label)
+    plot_per_param(df_agg, output_dir / f"{prefix}fig_per_param.png", args.param_label,
+                   train_min=args.train_min, train_max=args.train_max)
     plot_overall(df_overall, output_dir / f"{prefix}fig_overall.png")
     
     # 7. まとめを表示

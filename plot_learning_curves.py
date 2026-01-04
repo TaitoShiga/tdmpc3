@@ -82,14 +82,16 @@ def load_eval_csv(model: str, seed: int, logs_dir: Path, task: str = "pendulum")
         else:
             raise ValueError(f"Unknown model: {model}")
     elif task == "walker_actuator":
+        # artifactsディレクトリから読み込む（cheetahと同様）
+        artifacts_dir = Path("artifacts")
         if model == "baseline":
-            csv_path = logs_dir / "walker-walk" / str(seed) / "walker_baseline" / "eval.csv"
+            csv_path = artifacts_dir / "walker_baseline" / f"seed{seed}.csv"
         elif model == "dr":
-            csv_path = logs_dir / "walker-walk_actuator_randomized" / str(seed) / "walker_actuator_dr" / "eval.csv"
+            csv_path = artifacts_dir / "walker_dr" / f"seed{seed}.csv"
         elif model == "c":
-            csv_path = logs_dir / "walker-walk_actuator_randomized" / str(seed) / "walker_actuator_model_c" / "eval.csv"
+            csv_path = artifacts_dir / "walker_c" / f"seed{seed}.csv"
         elif model == "o":
-            csv_path = logs_dir / "walker-walk_actuator_randomized" / str(seed) / "walker_actuator_oracle" / "eval.csv"
+            csv_path = artifacts_dir / "walker_oracle" / f"seed{seed}.csv"
         else:
             raise ValueError(f"Unknown model: {model}")
     else:
@@ -309,13 +311,13 @@ def main():
     else:
         logs_dir = Path(args.logs_dir)
     
-    # pendulum/walkerの場合のみlogs_dirの存在確認
-    if args.task in {"pendulum", "walker_actuator"} and not logs_dir.exists():
+    # pendulumの場合のみlogs_dirの存在確認
+    if args.task == "pendulum" and not logs_dir.exists():
         print(f"Error: {logs_dir} not found!")
         return
     
-    # cheetahの場合はartifactsディレクトリの確認
-    if args.task == "cheetah":
+    # cheetah/walkerの場合はartifactsディレクトリの確認
+    if args.task in {"cheetah", "walker_actuator"}:
         artifacts_dir = Path("artifacts")
         if not artifacts_dir.exists():
             print(f"Error: {artifacts_dir} not found!")
@@ -323,7 +325,7 @@ def main():
     
     print(f"Configuration:")
     print(f"  Task: {args.task}")
-    if args.task in {"pendulum", "walker_actuator"}:
+    if args.task == "pendulum":
         print(f"  Logs dir: {logs_dir}")
     else:
         print(f"  Artifacts dir: artifacts/")
