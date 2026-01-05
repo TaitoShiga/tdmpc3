@@ -1,0 +1,18 @@
+Submitting Walker actuator evaluation jobs...
+Submitted batch job 6266
+  - Submitted seed 0
+Submitted batch job 6267
+  - Submitted seed 1
+Submitted batch job 6268
+  - Submitted seed 2
+Submitted batch job 6269
+  - Submitted seed 3
+Submitted batch job 6270
+  - Submitted seed 4
+
+After jobs complete, merge results:
+  head -1 results_walker_actuator_seed0.csv > results_walker_actuator.csv
+  for i in 0 1 2 3 4; do tail -n +2 results_walker_actuator_seed$i.csv >> results_walker_actuator.csv; done
+
+Then generate plots:
+  sbatch slurm_scripts/job_walker_actuator_plots.sh
