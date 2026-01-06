@@ -5,6 +5,7 @@ import numpy as np
 import torch
 
 from envs.tasks import cheetah, walker, hopper, reacher, ball_in_cup, pendulum, fish
+from dm_control.suite import walker as dm_walker
 from dm_control import suite
 suite.ALL_TASKS = suite.ALL_TASKS + suite._get_tasks('custom')
 suite.TASKS_BY_DOMAIN = suite._get_tasks_by_domain(suite.ALL_TASKS)
@@ -52,11 +53,12 @@ class DMControlWrapper:
 		return self._obs_to_array(self.env.reset().observation)
 
 	def step(self, action):
-		reward = 0
+		reward = 0.0
 		action = action.astype(self.action_spec_dtype)
 		for _ in range(2):
 			step = self.env.step(action)
-			reward += step.reward
+			if step.reward is not None:
+				reward += step.reward
 		return self._obs_to_array(step.observation), reward, False, defaultdict(float)
 	
 	def render(self, width=384, height=384, camera_id=None):
@@ -103,7 +105,7 @@ def make_env(cfg):
 	if cfg.task == 'walker-walk_actuator_dynamic':
 		max_steps = int(cfg.get('max_episode_steps', 0) or 0)
 		if max_steps > 0:
-			task_kwargs['time_limit'] = max_steps * walker._CONTROL_TIMESTEP
+			task_kwargs['time_limit'] = max_steps * dm_walker._CONTROL_TIMESTEP * 2
 	env = suite.load(domain,
 					 task,
 					 task_kwargs=task_kwargs,
@@ -112,5 +114,6 @@ def make_env(cfg):
 	env = DMControlWrapper(env, domain)
 	if cfg.obs == 'rgb':
 		env = Pixels(env, cfg)
-	env = Timeout(env, max_episode_steps=500)
+	max_episode_steps = int(cfg.get('max_episode_steps', 500))
+	env = Timeout(env, max_episode_steps=max_episode_steps)
 	return env

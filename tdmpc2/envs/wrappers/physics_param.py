@@ -376,6 +376,7 @@ class PhysicsParamWrapper(gym.Wrapper):
 		      stepごとに再取得する必要はないが、念のため更新可能にしておく。
 		"""
 		obs, reward, done, info = self.env.step(action)
+		self._current_c_phys = self.get_physics_param()
 		# infoに物理パラメータを追加（オプション）
 		# info['c_phys'] = self._current_c_phys
 		return obs, reward, done, info

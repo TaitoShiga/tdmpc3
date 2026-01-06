@@ -192,3 +192,258 @@ def three_easy_link_mass_25x(time_limit=_DEFAULT_TIME_LIMIT, random=None, enviro
   environment_kwargs = environment_kwargs or {}
   return control.Environment(
       physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+# ===== Reacher-Hard Perturbation Tasks =====
+# デフォルト値（4-link reacher）:
+#   - actuator_gear: 0.05
+#   - joint_damping: 0.01
+#   - body_mass: ~0.02 per link
+#   - joint_armature: ~0.001 (XMLにない場合のMuJoCoデフォルト)
+
+_DEFAULT_ACTUATOR_GEAR = 0.05
+_DEFAULT_JOINT_DAMPING = 0.01
+_DEFAULT_LINK_MASS = 0.02
+_DEFAULT_ARMATURE = 0.001
+
+
+# ===== 1. Actuator Gear Perturbations =====
+
+class ReacherHardActuator(reacher.Reacher):
+  """Actuator gear摂動版 Reacher-Hard"""
+  
+  def __init__(self, actuator_scale, target_size=_SMALL_TARGET, random=None):
+    super().__init__(target_size, random)
+    self._actuator_scale = actuator_scale
+    self._base_gear = None
+    self.current_actuator_scale = actuator_scale
+  
+  def initialize_episode(self, physics):
+    if self._base_gear is None:
+      self._base_gear = physics.model.actuator_gear.copy()
+    physics.model.actuator_gear[:] = self._base_gear * self._actuator_scale
+    super().initialize_episode(physics)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_actuator_04x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with actuator_gear=0.4x (弱い)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardActuator(actuator_scale=0.4, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_actuator_06x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with actuator_gear=0.6x"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardActuator(actuator_scale=0.6, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_actuator_08x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with actuator_gear=0.8x"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardActuator(actuator_scale=0.8, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_actuator_10x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with actuator_gear=1.0x (baseline)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardActuator(actuator_scale=1.0, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_actuator_12x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with actuator_gear=1.2x (強い)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardActuator(actuator_scale=1.2, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_actuator_14x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with actuator_gear=1.4x (強い)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardActuator(actuator_scale=1.4, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+# ===== 2. Joint Damping Perturbations =====
+
+class ReacherHardDamping(reacher.Reacher):
+  """Joint damping摂動版 Reacher-Hard"""
+  
+  def __init__(self, damping_scale, target_size=_SMALL_TARGET, random=None):
+    super().__init__(target_size, random)
+    self._damping_scale = damping_scale
+    self._base_damping = None
+    self.current_damping_scale = damping_scale
+  
+  def initialize_episode(self, physics):
+    if self._base_damping is None:
+      self._base_damping = physics.model.dof_damping.copy()
+    physics.model.dof_damping[:] = self._base_damping * self._damping_scale
+    super().initialize_episode(physics)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_damping_05x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with damping=0.5x (低い - 振動しやすい)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardDamping(damping_scale=0.5, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_damping_075x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with damping=0.75x"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardDamping(damping_scale=0.75, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_damping_10x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with damping=1.0x (baseline)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardDamping(damping_scale=1.0, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_damping_15x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with damping=1.5x (高い - 動きが鈍い)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardDamping(damping_scale=1.5, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_damping_20x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with damping=2.0x (高い - 動きが鈍い)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardDamping(damping_scale=2.0, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+# ===== 3. Link Mass Perturbations =====
+
+class ReacherHardMass(reacher.Reacher):
+  """Link mass摂動版 Reacher-Hard"""
+  
+  def __init__(self, mass_scale, target_size=_SMALL_TARGET, random=None):
+    super().__init__(target_size, random)
+    self._mass_scale = mass_scale
+    self._base_mass = None
+    self.current_mass_scale = mass_scale
+  
+  def initialize_episode(self, physics):
+    if self._base_mass is None:
+      # 4-link reacherの場合、body 1-5がarm0, arm1, arm2, hand, finger
+      self._base_mass = physics.model.body_mass[1:6].copy()
+    physics.model.body_mass[1:6] = self._base_mass * self._mass_scale
+    super().initialize_episode(physics)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_mass_05x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with link_mass=0.5x (軽い)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardMass(mass_scale=0.5, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_mass_075x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with link_mass=0.75x"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardMass(mass_scale=0.75, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_mass_10x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with link_mass=1.0x (baseline)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardMass(mass_scale=1.0, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_mass_15x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with link_mass=1.5x (重い)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardMass(mass_scale=1.5, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_mass_20x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with link_mass=2.0x (重い)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardMass(mass_scale=2.0, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+# ===== 4. Joint Armature Perturbations =====
+
+class ReacherHardArmature(reacher.Reacher):
+  """Joint armature摂動版 Reacher-Hard"""
+  
+  def __init__(self, armature_value, target_size=_SMALL_TARGET, random=None):
+    super().__init__(target_size, random)
+    self._armature_value = armature_value
+    self.current_armature = armature_value
+  
+  def initialize_episode(self, physics):
+    # Armatureを設定（全ての自由度）
+    physics.model.dof_armature[:] = self._armature_value
+    super().initialize_episode(physics)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_armature_low(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with armature=0.0005 (低い慣性)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardArmature(armature_value=0.0005, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_armature_mid(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with armature=0.001 (baseline)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardArmature(armature_value=0.001, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_armature_high(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with armature=0.002 (高い慣性)"""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4))
+  task = ReacherHardArmature(armature_value=0.002, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
