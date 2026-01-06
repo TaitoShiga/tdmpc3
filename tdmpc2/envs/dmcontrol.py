@@ -99,9 +99,14 @@ def make_env(cfg):
 	if (domain, task) not in suite.ALL_TASKS:
 		raise ValueError('Unknown task:', task)
 	assert cfg.obs in {'state', 'rgb'}, 'This task only supports state and rgb observations.'
+	task_kwargs = {'random': cfg.seed}
+	if cfg.task == 'walker-walk_actuator_dynamic':
+		max_steps = int(cfg.get('max_episode_steps', 0) or 0)
+		if max_steps > 0:
+			task_kwargs['time_limit'] = max_steps * walker._CONTROL_TIMESTEP
 	env = suite.load(domain,
 					 task,
-					 task_kwargs={'random': cfg.seed},
+					 task_kwargs=task_kwargs,
 					 visualize_reward=False)
 	env = action_scale.Wrapper(env, minimum=-1., maximum=1.)
 	env = DMControlWrapper(env, domain)

@@ -161,6 +161,11 @@ def walk_randomized(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environm
 
 _DEFAULT_ACTUATOR_SCALE = 1.0
 _ACTUATOR_SCALE_RANGE = (0.4 * _DEFAULT_ACTUATOR_SCALE, 1.4 * _DEFAULT_ACTUATOR_SCALE)
+_ACTUATOR_LINEAR_MIN_SCALE = 0.4
+_ACTUATOR_LINEAR_MAX_SCALE = 1.0
+_ACTUATOR_LINEAR_DECAY_STEPS = max(
+    1, int(round(walker._DEFAULT_TIME_LIMIT / walker._CONTROL_TIMESTEP))
+)
 
 
 class WalkActuatorRandomized(walker.PlanarWalker):
@@ -186,6 +191,58 @@ def walk_actuator_randomized(time_limit=walker._DEFAULT_TIME_LIMIT, random=None,
     """Walker Walk with randomized actuator gear scaling per episode."""
     physics = walker.Physics.from_xml_string(*get_model_and_assets())
     task = WalkActuatorRandomized(move_speed=walker._WALK_SPEED, random=random)
+    environment_kwargs = environment_kwargs or {}
+    return control.Environment(
+        physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
+        **environment_kwargs)
+
+
+class WalkActuatorLinearDecay(walker.PlanarWalker):
+    """Linear decay of actuator scale within an episode."""
+
+    def __init__(self, move_speed=walker._WALK_SPEED, random=None,
+                 min_scale=_ACTUATOR_LINEAR_MIN_SCALE,
+                 max_scale=_ACTUATOR_LINEAR_MAX_SCALE,
+                 decay_steps=_ACTUATOR_LINEAR_DECAY_STEPS):
+        super().__init__(move_speed, random)
+        self._min_scale = float(min_scale)
+        self._max_scale = float(max_scale)
+        self._decay_steps = max(1, int(decay_steps))
+        self._base_gear = None
+        self.current_actuator_scale = _DEFAULT_ACTUATOR_SCALE
+        self._step = 0
+
+    def _set_scale(self, physics, scale):
+        self.current_actuator_scale = scale
+        physics.model.actuator_gear[:] = self._base_gear * scale
+
+    def initialize_episode(self, physics):
+        self._step = 0
+        if self._base_gear is None:
+            self._base_gear = physics.model.actuator_gear.copy()
+        self._set_scale(physics, self._max_scale)
+        super().initialize_episode(physics)
+
+    def before_step(self, action, physics):
+        self._step += 1
+        progress = min(self._step / max(1, self._decay_steps - 1), 1.0)
+        scale = self._max_scale + (self._min_scale - self._max_scale) * progress
+        self._set_scale(physics, scale)
+        super().before_step(action, physics)
+
+
+@walker.SUITE.add('custom')
+def walk_actuator_dynamic(time_limit=walker._DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+    """Walker Walk with linearly decaying actuator scale within an episode."""
+    physics = walker.Physics.from_xml_string(*get_model_and_assets())
+    decay_steps = max(1, int(round(time_limit / walker._CONTROL_TIMESTEP)))
+    task = WalkActuatorLinearDecay(
+        move_speed=walker._WALK_SPEED,
+        random=random,
+        min_scale=_ACTUATOR_LINEAR_MIN_SCALE,
+        max_scale=_ACTUATOR_LINEAR_MAX_SCALE,
+        decay_steps=decay_steps,
+    )
     environment_kwargs = environment_kwargs or {}
     return control.Environment(
         physics, task, time_limit=time_limit, control_timestep=walker._CONTROL_TIMESTEP,
