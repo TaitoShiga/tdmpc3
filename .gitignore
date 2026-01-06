@@ -136,3 +136,5 @@ dmypy.json
 /results/
 logs_remote/
 figures/ 
+checkpoints_walker
+checkpoints_walker/
