@@ -125,6 +125,10 @@ class PhysicsParamWrapper(gym.Wrapper):
 				# 平均=0.35, 標準偏差≈0.058
 				self.default_value = np.array([0.33])
 				self.scale = np.array([0.1])  # (0.45-0.25)/2 = 0.1
+			elif self.domain == 'reacher':
+				# Reacher: link length scale
+				self.default_value = np.array([1.0])
+				self.scale = np.array([0.3])
 			else:
 				# 汎用的なデフォルト
 				self.default_value = np.array([1.0])
@@ -265,6 +269,14 @@ class PhysicsParamWrapper(gym.Wrapper):
 						return self.default_value.copy()
 					except:
 						return self.default_value.copy()
+				elif self.domain == 'reacher':
+					try:
+						task = self.env.unwrapped.task
+						if hasattr(task, 'current_length_scale'):
+							return np.array([task.current_length_scale])
+					except:
+						pass
+					return self.default_value.copy()
 				else:
 					return self.default_value.copy()
 			

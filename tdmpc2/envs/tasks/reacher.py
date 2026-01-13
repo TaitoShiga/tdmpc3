@@ -1,5 +1,6 @@
 import collections
 import os
+import xml.etree.ElementTree as ET
 
 from dm_control import mujoco
 from dm_control.rl import control
@@ -15,11 +16,56 @@ _BIG_TARGET = .05
 _SMALL_TARGET = .015
 
 
-def get_model_and_assets(links):
+def _scale_vec_attr(elem, attr, scale):
+    value = elem.get(attr)
+    if not value:
+        return
+    parts = value.split()
+    if len(parts) != 3:
+        return
+    vec = [float(v) for v in parts]
+    vec[0] *= scale
+    elem.set(attr, f"{vec[0]:.6g} {vec[1]:.6g} {vec[2]:.6g}")
+
+
+def _scale_fromto_x(elem, scale):
+    value = elem.get('fromto')
+    if not value:
+        return
+    parts = value.split()
+    if len(parts) != 6:
+        return
+    vec = [float(v) for v in parts]
+    vec[3] *= scale
+    elem.set('fromto', " ".join(f"{v:.6g}" for v in vec))
+
+
+def _scale_reacher_xml(xml_string, length_scale):
+    if np.isclose(length_scale, 1.0):
+        return xml_string
+    root = ET.fromstring(xml_string)
+    length_bodies = {"arm1", "arm2", "hand", "finger"}
+    length_geoms = {"arm0", "arm1", "arm2", "hand"}
+    for body in root.iter('body'):
+        if body.get('name') in length_bodies:
+            _scale_vec_attr(body, 'pos', length_scale)
+    for geom in root.iter('geom'):
+        if geom.get('name') in length_geoms:
+            _scale_fromto_x(geom, length_scale)
+    return ET.tostring(root, encoding='unicode')
+
+
+def get_model_and_assets(links, length_scale=1.0):
     """Returns a tuple containing the model XML string and a dict of assets."""
-    assert links in {3, 4}, 'Only 3 or 4 links are supported.'
+    assert links in {2, 3, 4}, 'Only 2, 3, or 4 links are supported.'
+    if links == 2:
+        model_xml, assets = reacher.get_model_and_assets()
+        model_xml = _scale_reacher_xml(model_xml, length_scale)
+        return model_xml, assets
     fn = 'reacher_three_links.xml' if links == 3 else 'reacher_four_links.xml'
-    return resources.GetResource(os.path.join(_TASKS_DIR, fn)), common.ASSETS
+    model_xml = resources.GetResource(os.path.join(_TASKS_DIR, fn))
+    model_xml = _scale_reacher_xml(model_xml, length_scale)
+    return model_xml, common.ASSETS
 
 
 @reacher.SUITE.add('custom')
@@ -406,7 +452,148 @@ def four_hard_mass_20x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_
   return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
 
 
-# ===== 4. Joint Armature Perturbations =====
+# ===== 4. Link Length Perturbations =====
+
+class ReacherHardLength(reacher.Reacher):
+  """Link length scaling for Reacher-Hard."""
+
+  def __init__(self, length_scale, target_size=_SMALL_TARGET, random=None):
+    super().__init__(target_size, random)
+    self._length_scale = length_scale
+    self.current_length_scale = length_scale
+
+  def initialize_episode(self, physics):
+    super().initialize_episode(physics)
+
+
+# Default 2-link Reacher-Hard length sweeps.
+@reacher.SUITE.add('custom')
+def hard_length_07x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard (2-link) with link length scaled to 0.7x."""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=2, length_scale=0.7))
+  task = ReacherHardLength(length_scale=0.7, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def hard_length_08x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard (2-link) with link length scaled to 0.8x."""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=2, length_scale=0.8))
+  task = ReacherHardLength(length_scale=0.8, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def hard_length_09x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard (2-link) with link length scaled to 0.9x."""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=2, length_scale=0.9))
+  task = ReacherHardLength(length_scale=0.9, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def hard_length_10x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard (2-link) with link length scaled to 1.0x (baseline)."""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=2, length_scale=1.0))
+  task = ReacherHardLength(length_scale=1.0, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def hard_length_11x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard (2-link) with link length scaled to 1.1x."""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=2, length_scale=1.1))
+  task = ReacherHardLength(length_scale=1.1, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def hard_length_12x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard (2-link) with link length scaled to 1.2x."""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=2, length_scale=1.2))
+  task = ReacherHardLength(length_scale=1.2, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def hard_length_13x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard (2-link) with link length scaled to 1.3x."""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=2, length_scale=1.3))
+  task = ReacherHardLength(length_scale=1.3, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_length_07x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with link length scaled to 0.7x."""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4, length_scale=0.7))
+  task = ReacherHardLength(length_scale=0.7, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_length_08x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with link length scaled to 0.8x."""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4, length_scale=0.8))
+  task = ReacherHardLength(length_scale=0.8, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_length_09x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with link length scaled to 0.9x."""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4, length_scale=0.9))
+  task = ReacherHardLength(length_scale=0.9, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_length_10x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with link length scaled to 1.0x (baseline)."""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4, length_scale=1.0))
+  task = ReacherHardLength(length_scale=1.0, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_length_11x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with link length scaled to 1.1x."""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4, length_scale=1.1))
+  task = ReacherHardLength(length_scale=1.1, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_length_12x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with link length scaled to 1.2x."""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4, length_scale=1.2))
+  task = ReacherHardLength(length_scale=1.2, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+@reacher.SUITE.add('custom')
+def four_hard_length_13x(time_limit=_DEFAULT_TIME_LIMIT, random=None, environment_kwargs=None):
+  """Reacher-Hard with link length scaled to 1.3x."""
+  physics = Physics.from_xml_string(*get_model_and_assets(links=4, length_scale=1.3))
+  task = ReacherHardLength(length_scale=1.3, random=random)
+  environment_kwargs = environment_kwargs or {}
+  return control.Environment(physics, task, time_limit=time_limit, **environment_kwargs)
+
+
+# ===== 5. Joint Armature Perturbations =====
 
 class ReacherHardArmature(reacher.Reacher):
   """Joint armature摂動版 Reacher-Hard"""
